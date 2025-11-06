@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Acadêmico Integrado</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Tela de Login -->
+        <div id="login-screen" class="login-container">
+            <div class="login-form">
+                <div class="login-header">
+                    <h2><i class="fas fa-graduation-cap"></i> Sistema Acadêmico</h2>
+                    <p>Acesso ao Portal Educacional</p>
+                </div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" placeholder="seu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Senha</label>
+                        <input type="password" id="password" placeholder="Sua senha" required>
+                    </div>
+                    <button type="submit" class="login-btn">
+                        <i class="fas fa-sign-in-alt"></i> Entrar
+                    </button>
+                </form>
+
+                <div class="demo-accounts">
+                    <h4>Contas de Demonstração:</h4>
+                    <div class="account-type">
+                        <strong>Admin:</strong> admin@escola.com / admin123
+                    </div>
+                    <div class="account-type">
+                        <strong>Professor:</strong> professor@escola.com / prof123
+                    </div>
+                    <div class="account-type">
+                        <strong>Aluno:</strong> aluno@escola.com / aluno123
+                    </div>
+                </div>
+
+                <div class="sustainability-info">
+                    <i class="fas fa-leaf"></i>
+                    <span>Sistema 100% Digital - Contribuindo para um planeta mais verde</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sistema Principal -->
+        <div id="main-system" class="container" style="display: none;">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h2><i class="fas fa-graduation-cap"></i> Acadêmico</h2>
+                    <p id="user-role">Sistema Educacional</p>
+                </div>
+
+                <div class="sidebar-menu" id="sidebar-menu">
+                    <!-- Menu será carregado dinamicamente baseado no tipo de usuário -->
+                </div>
+
+                <div class="sidebar-footer">
+                    <div class="sustainability-badge">
+                        <i class="fas fa-leaf"></i>
+                        <span>Sistema Sustentável</span>
+                    </div>
+                    <button class="btn-logout" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <div class="header">
+                    <div class="header-left">
+                        <h1 id="section-title">Dashboard</h1>
+                        <div id="breadcrumb" class="breadcrumb"></div>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-avatar" id="user-avatar">U</div>
+                        <div class="user-details">
+                            <span id="user-name">Usuário</span>
+                            <span id="user-type" class="user-type">Tipo</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="content-area">
+                    <!-- Conteúdo dinâmico será carregado aqui -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Feedback -->
+    <div id="feedback-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Enviar Feedback</h3>
+                <button class="modal-close" onclick="closeModal('feedback-modal')">&times;</button>
+            </div>
+            <form id="feedback-form">
+                <div class="form-group">
+                    <label>Avaliação do Sistema</label>
+                    <div class="rating-stars">
+                        <span class="star" data-rating="1">★</span>
+                        <span class="star" data-rating="2">★</span>
+                        <span class="star" data-rating="3">★</span>
+                        <span class="star" data-rating="4">★</span>
+                        <span class="star" data-rating="5">★</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="feedback-text">Feedback</label>
+                    <textarea id="feedback-text" placeholder="Compartilhe suas sugestões..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="suggestions">Sugestões de Melhoria</label>
+                    <textarea id="suggestions" placeholder="O que podemos melhorar?"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Enviar Feedback</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Botão Assistente IA -->
+    <div class="ai-assistant" onclick="openAIAssistant()">
+        <i class="fas fa-robot"></i>
+    </div>
+
+    <!-- Botão Feedback -->
+    <div class="feedback-btn" onclick="openModal('feedback-modal')">
+        <i class="fas fa-comment"></i>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/aluno.js"></script>
+    <script src="js/professor.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+
+</html>
