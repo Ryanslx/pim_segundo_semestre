@@ -72,101 +72,33 @@ def get_turmas():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Rota para obter alunos (admin)
-@app.route('/api/admin/alunos', methods=['GET'])
-def get_alunos():
+# Rota para obter uma turma específica (admin)
+@app.route('/api/admin/turmas/<int:turma_id>', methods=['GET'])
+def get_turma(turma_id):
     try:
         db = get_db()
-        alunos = db.execute('''
-            SELECT a.*, u.nome, u.email, t.nome as turma_nome
-            FROM alunos a
-            JOIN usuarios u ON a.usuario_id = u.id
-            LEFT JOIN turmas t ON a.turma_id = t.id
-        ''').fetchall()
+        turma = db.execute('''
+            SELECT t.*, u.nome as criado_por_nome 
+            FROM turmas t 
+            LEFT JOIN usuarios u ON t.criado_por = u.id
+            WHERE t.id = ?
+        ''', (turma_id,)).fetchone()
+        
+        if not turma:
+            return jsonify({'error': 'Turma não encontrada'}), 404
         
         return jsonify({
-            'alunos': [dict(aluno) for aluno in alunos]
+            'turma': dict(turma)
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Rota para obter professores (admin)
-@app.route('/api/admin/professores', methods=['GET'])
-def get_professores():
-    try:
-        db = get_db()
-        professores = db.execute('''
-            SELECT u.*, COUNT(m.id) as materias_count
-            FROM usuarios u
-            LEFT JOIN materias m ON u.id = m.professor_id
-            WHERE u.tipo = 'professor'
-            GROUP BY u.id
-        ''').fetchall()
-        
-        return jsonify({
-            'professores': [dict(prof) for prof in professores]
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# Rota para notas do aluno
-@app.route('/api/aluno/minhas-notas', methods=['GET'])
-def get_minhas_notas():
-    try:
-        # Para teste, vamos retornar dados fixos primeiro
-        db = get_db()
-        
-        # Obter algum aluno para teste
-        aluno = db.execute('SELECT id FROM alunos LIMIT 1').fetchone()
-        if not aluno:
-            return jsonify({'notas': [], 'media_geral': 0})
-            
-        notas = db.execute('''
-            SELECT n.*, a.titulo as atividade_titulo, m.nome as materia_nome,
-                   a.valor as valor_atividade, u.nome as professor_nome
-            FROM notas n
-            JOIN atividades a ON n.atividade_id = a.id
-            JOIN materias m ON a.materia_id = m.id
-            JOIN usuarios u ON n.avaliado_por = u.id
-            WHERE n.aluno_id = ?
-            ORDER BY n.data_avaliacao DESC
-        ''', (aluno['id'],)).fetchall()
-        
-        # Calcular média geral
-        media_geral = db.execute('''
-            SELECT AVG(nota) as media FROM notas WHERE aluno_id = ?
-        ''', (aluno['id'],)).fetchone()
-        
-        return jsonify({
-            'notas': [dict(nota) for nota in notas],
-            'media_geral': media_geral['media'] if media_geral['media'] else 0
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# Rota de feedback do sistema
-@app.route('/api/feedback', methods=['POST'])
-def submit_feedback():
-    try:
-        data = request.get_json()
-        
-        db = get_db()
-        db.execute(
-            'INSERT INTO feedback (user_id, user_type, feedback, rating, suggestions) VALUES (?, ?, ?, ?, ?)',
-            (data.get('user_id'), data.get('user_type'), data.get('feedback'), 
-             data.get('rating'), data.get('suggestions'))
-        )
-        db.commit()
-        
-        return jsonify({'message': 'Feedback enviado com sucesso!'})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    
+# Rota para criar turma (admin)
 @app.route('/api/admin/turmas', methods=['POST'])
 def create_turma():
     try:
         data = request.get_json()
-        print("Dados recebidos:", data)  # Para debug
+        print("Dados recebidos:", data)
         
         # Validar dados obrigatórios
         required_fields = ['nome', 'codigo', 'ano_letivo', 'periodo']
@@ -205,6 +137,75 @@ def create_turma():
         print(f'Erro ao criar turma: {e}')
         return jsonify({'error': f'Erro interno: {str(e)}'}), 500
 
+# Rota para atualizar turma (admin)
+@app.route('/api/admin/turmas/<int:turma_id>', methods=['PUT'])
+def update_turma(turma_id):
+    try:
+        data = request.get_json()
+        print("Dados para atualizar turma:", data)
+        
+        # Validar dados obrigatórios
+        required_fields = ['nome', 'codigo', 'ano_letivo', 'periodo']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({'error': f'Campo obrigatório faltando: {field}'}), 400
+        
+        db = get_db()
+        
+        # Verificar se a turma existe
+        turma_existente = db.execute(
+            'SELECT id FROM turmas WHERE id = ?', (turma_id,)
+        ).fetchone()
+        
+        if not turma_existente:
+            return jsonify({'error': 'Turma não encontrada'}), 404
+        
+        # Verificar se código já existe (excluindo a própria turma)
+        existing = db.execute(
+            'SELECT id FROM turmas WHERE codigo = ? AND id != ?', (data['codigo'], turma_id)
+        ).fetchone()
+        
+        if existing:
+            return jsonify({'error': 'Código de turma já existe'}), 400
+        
+        # Verificar capacidade mínima e máxima
+        capacidade_max = data.get('capacidade_max', 90)
+        if capacidade_max < 30 or capacidade_max > 90:
+            return jsonify({'error': 'Capacidade deve ser entre 30 e 90 alunos'}), 400
+        
+        # Obter número atual de alunos matriculados
+        alunos_count = db.execute(
+            'SELECT COUNT(*) FROM alunos WHERE turma_id = ?', (turma_id,)
+        ).fetchone()[0]
+        
+        # Verificar se a nova capacidade é suficiente para os alunos atuais
+        if capacidade_max < alunos_count:
+            return jsonify({'error': f'Não é possível reduzir a capacidade para {capacidade_max}. Existem {alunos_count} alunos matriculados.'}), 400
+        
+        # Atualizar turma
+        db.execute('''
+            UPDATE turmas 
+            SET nome = ?, codigo = ?, descricao = ?, ano_letivo = ?, 
+                periodo = ?, capacidade_max = ?
+            WHERE id = ?
+        ''', (
+            data['nome'], 
+            data['codigo'], 
+            data.get('descricao', ''), 
+            data['ano_letivo'], 
+            data['periodo'],
+            capacidade_max,
+            turma_id
+        ))
+        
+        db.commit()
+        
+        return jsonify({'message': 'Turma atualizada com sucesso!'})
+        
+    except Exception as e:
+        print(f'Erro ao atualizar turma: {e}')
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
 # Rota para deletar turmas (admin)
 @app.route('/api/admin/turmas/<int:turma_id>', methods=['DELETE'])
 def delete_turma(turma_id):
@@ -227,25 +228,59 @@ def delete_turma(turma_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Rota de sustentabilidade
-@app.route('/api/sustainability', methods=['GET'])
-def get_sustainability_metrics():
+# Rota para obter turmas para select (admin) - apenas com vagas
+@app.route('/api/admin/turmas-select', methods=['GET'])
+def get_turmas_select():
     try:
         db = get_db()
+        turmas = db.execute('''
+            SELECT id, nome, codigo, capacidade_max, alunos_matriculados
+            FROM turmas 
+            WHERE alunos_matriculados < capacidade_max
+            ORDER BY nome
+        ''').fetchall()
         
-        students_count = db.execute('SELECT COUNT(*) FROM alunos').fetchone()[0]
-        assignments_count = db.execute('SELECT COUNT(*) FROM atividades').fetchone()[0]
-        
-        metrics = {
-            'paper_saved_pages': assignments_count * 3,
-            'co2_saved_kg': students_count * 0.5,
-            'trees_saved': (assignments_count * 3) / 8000,
-            'digital_assignments': assignments_count
-        }
-        
-        return jsonify(metrics)
+        return jsonify({
+            'turmas': [dict(turma) for turma in turmas]
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Rota para obter todas as turmas (admin) - incluindo lotadas
+@app.route('/api/admin/todas-turmas', methods=['GET'])
+def get_todas_turmas():
+    try:
+        db = get_db()
+        turmas = db.execute('''
+            SELECT id, nome, codigo, capacidade_max, alunos_matriculados
+            FROM turmas 
+            ORDER BY nome
+        ''').fetchall()
+        
+        return jsonify({
+            'turmas': [dict(turma) for turma in turmas]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Rota para obter alunos (admin)
+@app.route('/api/admin/alunos', methods=['GET'])
+def get_alunos():
+    try:
+        db = get_db()
+        alunos = db.execute('''
+            SELECT a.*, u.nome, u.email, t.nome as turma_nome
+            FROM alunos a
+            JOIN usuarios u ON a.usuario_id = u.id
+            LEFT JOIN turmas t ON a.turma_id = t.id
+        ''').fetchall()
+        
+        return jsonify({
+            'alunos': [dict(aluno) for aluno in alunos]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Rota para obter alunos com mais detalhes (admin)
 @app.route('/api/admin/alunos-completo', methods=['GET'])
 def get_alunos_completo():
@@ -278,12 +313,44 @@ def get_alunos_completo():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Rota para obter um aluno específico (admin)
+@app.route('/api/admin/alunos/<int:aluno_id>', methods=['GET'])
+def get_aluno(aluno_id):
+    try:
+        db = get_db()
+        aluno = db.execute('''
+            SELECT 
+                a.id,
+                u.nome,
+                u.email,
+                a.matricula,
+                a.data_nascimento,
+                a.endereco,
+                a.telefone,
+                t.nome as turma_nome,
+                t.id as turma_id,
+                u.id as usuario_id
+            FROM alunos a
+            JOIN usuarios u ON a.usuario_id = u.id
+            LEFT JOIN turmas t ON a.turma_id = t.id
+            WHERE a.id = ?
+        ''', (aluno_id,)).fetchone()
+        
+        if not aluno:
+            return jsonify({'error': 'Aluno não encontrado'}), 404
+        
+        return jsonify({
+            'aluno': dict(aluno)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Rota para criar novo aluno (admin)
 @app.route('/api/admin/alunos', methods=['POST'])
 def create_aluno():
     try:
         data = request.get_json()
-        print("Dados do aluno:", data)
+        print("📝 Dados recebidos para criar aluno:", data)
         
         # Validar campos obrigatórios
         required_fields = ['nome', 'email', 'matricula', 'senha']
@@ -298,6 +365,7 @@ def create_aluno():
             'SELECT id FROM usuarios WHERE email = ?', (data['email'],)
         ).fetchone()
         if existing_email:
+            print("❌ Email já existe:", data['email'])
             return jsonify({'error': 'Email já cadastrado'}), 400
         
         # Verificar se matrícula já existe
@@ -305,9 +373,11 @@ def create_aluno():
             'SELECT id FROM alunos WHERE matricula = ?', (data['matricula'],)
         ).fetchone()
         if existing_matricula:
+            print("❌ Matrícula já existe:", data['matricula'])
             return jsonify({'error': 'Matrícula já existe'}), 400
         
         # Criar usuário primeiro
+        print("👤 Criando usuário...")
         db.execute(
             'INSERT INTO usuarios (nome, email, senha, tipo) VALUES (?, ?, ?, ?)',
             (data['nome'], data['email'], generate_password_hash(data['senha']), 'aluno')
@@ -315,8 +385,10 @@ def create_aluno():
         
         # Obter ID do usuário criado
         usuario_id = db.execute('SELECT last_insert_rowid()').fetchone()[0]
+        print(f"✅ Usuário criado com ID: {usuario_id}")
         
         # Criar aluno
+        print("🎓 Criando registro do aluno...")
         db.execute('''
             INSERT INTO alunos (usuario_id, matricula, turma_id, data_nascimento, endereco, telefone)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -335,13 +407,15 @@ def create_aluno():
                 'UPDATE turmas SET alunos_matriculados = alunos_matriculados + 1 WHERE id = ?',
                 (data['turma_id'],)
             )
+            print(f"🏫 Turma {data['turma_id']} atualizada")
         
         db.commit()
+        print("✅ Aluno criado com sucesso!")
         
         return jsonify({'message': 'Aluno criado com sucesso!'})
         
     except Exception as e:
-        print(f'Erro ao criar aluno: {e}')
+        print(f'❌ Erro ao criar aluno: {e}')
         return jsonify({'error': f'Erro interno: {str(e)}'}), 500
 
 # Rota para atualizar aluno (admin)
@@ -452,21 +526,95 @@ def delete_aluno(aluno_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Rota para obter turmas para select (admin)
-@app.route('/api/admin/turmas-select', methods=['GET'])
-def get_turmas_select():
+# Rota para obter professores (admin)
+@app.route('/api/admin/professores', methods=['GET'])
+def get_professores():
     try:
         db = get_db()
-        turmas = db.execute('''
-            SELECT id, nome, codigo, capacidade_max, alunos_matriculados
-            FROM turmas 
-            WHERE alunos_matriculados < capacidade_max
-            ORDER BY nome
+        professores = db.execute('''
+            SELECT u.*, COUNT(m.id) as materias_count
+            FROM usuarios u
+            LEFT JOIN materias m ON u.id = m.professor_id
+            WHERE u.tipo = 'professor'
+            GROUP BY u.id
         ''').fetchall()
         
         return jsonify({
-            'turmas': [dict(turma) for turma in turmas]
+            'professores': [dict(prof) for prof in professores]
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Rota para notas do aluno
+@app.route('/api/aluno/minhas-notas', methods=['GET'])
+def get_minhas_notas():
+    try:
+        # Para teste, vamos retornar dados fixos primeiro
+        db = get_db()
+        
+        # Obter algum aluno para teste
+        aluno = db.execute('SELECT id FROM alunos LIMIT 1').fetchone()
+        if not aluno:
+            return jsonify({'notas': [], 'media_geral': 0})
+            
+        notas = db.execute('''
+            SELECT n.*, a.titulo as atividade_titulo, m.nome as materia_nome,
+                   a.valor as valor_atividade, u.nome as professor_nome
+            FROM notas n
+            JOIN atividades a ON n.atividade_id = a.id
+            JOIN materias m ON a.materia_id = m.id
+            JOIN usuarios u ON n.avaliado_por = u.id
+            WHERE n.aluno_id = ?
+            ORDER BY n.data_avaliacao DESC
+        ''', (aluno['id'],)).fetchall()
+        
+        # Calcular média geral
+        media_geral = db.execute('''
+            SELECT AVG(nota) as media FROM notas WHERE aluno_id = ?
+        ''', (aluno['id'],)).fetchone()
+        
+        return jsonify({
+            'notas': [dict(nota) for nota in notas],
+            'media_geral': media_geral['media'] if media_geral['media'] else 0
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Rota de feedback do sistema
+@app.route('/api/feedback', methods=['POST'])
+def submit_feedback():
+    try:
+        data = request.get_json()
+        
+        db = get_db()
+        db.execute(
+            'INSERT INTO feedback (user_id, user_type, feedback, rating, suggestions) VALUES (?, ?, ?, ?, ?)',
+            (data.get('user_id'), data.get('user_type'), data.get('feedback'), 
+             data.get('rating'), data.get('suggestions'))
+        )
+        db.commit()
+        
+        return jsonify({'message': 'Feedback enviado com sucesso!'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Rota de sustentabilidade
+@app.route('/api/sustainability', methods=['GET'])
+def get_sustainability_metrics():
+    try:
+        db = get_db()
+        
+        students_count = db.execute('SELECT COUNT(*) FROM alunos').fetchone()[0]
+        assignments_count = db.execute('SELECT COUNT(*) FROM atividades').fetchone()[0]
+        
+        metrics = {
+            'paper_saved_pages': assignments_count * 3,
+            'co2_saved_kg': students_count * 0.5,
+            'trees_saved': (assignments_count * 3) / 8000,
+            'digital_assignments': assignments_count
+        }
+        
+        return jsonify(metrics)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
