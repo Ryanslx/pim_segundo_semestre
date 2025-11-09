@@ -34,7 +34,7 @@ Sistema completo de gestão acadêmica com backend em Python/Flask, frontend em 
 
 1. **Clone o repositório**
 ```bash
-git clone <url-do-repositorio>
+git clone <https://github.com/Ryanslx/pim_segundo_semestre.git>
 cd sistema-academico
 
 baixar dependencias: pip install flask flask-cors flask-jwt-extended werkzeug
