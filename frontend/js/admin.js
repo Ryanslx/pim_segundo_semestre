@@ -2101,6 +2101,40 @@ async function adicionarProfessorTurma(turmaId) {
     }
 }
 
+// Função de debug - execute no console do navegador
+async function debugAlocacaoProfessor() {
+    try {
+        console.log('🔍 Debug: Verificando alocação de professores...');
+
+        // Testar carregamento de professores disponíveis
+        const professoresRes = await fetch(`${API_BASE}/admin/professores-disponiveis`, {
+            headers: getAuthHeaders()
+        });
+        const professoresData = await professoresRes.json();
+        console.log('📊 Professores disponíveis:', professoresData.professores);
+
+        // Testar carregamento de professores de uma turma específica
+        const turmaId = 1; // Altere para a turma que está testando
+        const turmaRes = await fetch(`${API_BASE}/admin/turmas/${turmaId}/professores`, {
+            headers: getAuthHeaders()
+        });
+        const turmaData = await turmaRes.json();
+        console.log(`📊 Professores na turma ${turmaId}:`, turmaData.professores);
+
+        // Verificar estrutura do banco
+        const materiasRes = await fetch(`${API_BASE}/admin/materias`, {
+            headers: getAuthHeaders()
+        });
+        const materiasData = await materiasRes.json();
+        console.log('📚 Matérias no sistema:', materiasData.materias);
+
+    } catch (error) {
+        console.error('❌ Erro no debug:', error);
+    }
+}
+
+// Execute no console: debugAlocacaoProfessor()
+
 // Função para submeter adição de professor à turma - SIMPLIFICADA
 async function adicionarProfessorTurmaSubmit(turmaId, event) {
     event.preventDefault();
@@ -2118,9 +2152,40 @@ async function adicionarProfessorTurmaSubmit(turmaId, event) {
         return;
     }
 
+    console.log('📤 Enviando dados para alocação:', {
+        turmaId,
+        professorId,
+        materiaNome,
+        cargaHoraria,
+        dataInicio,
+        horarioAula,
+        diaSemana
+    });
+
     try {
-        // Simular sucesso (em uma implementação real, isso faria uma requisição para o backend)
-        showNotification(`Professor alocado na turma com sucesso! Matéria: ${materiaNome}`, 'success');
+        const response = await fetch(`${API_BASE}/admin/turmas/${turmaId}/professores`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                professor_id: professorId,
+                materia_nome: materiaNome,
+                carga_horaria_semanal: parseInt(cargaHoraria),
+                data_inicio: dataInicio,
+                horario: horarioAula,
+                dia_semana: diaSemana,
+                observacoes: observacoes || null
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Erro na resposta:', errorText);
+            throw new Error(`Erro ${response.status}: ${errorText}`);
+        }
+
+        const result = await response.json();
+
+        showNotification('Professor alocado na turma com sucesso!', 'success');
         closeModal('add-professor-turma-modal');
 
         // Recarregar os detalhes da turma após um delay
@@ -2129,11 +2194,10 @@ async function adicionarProfessorTurmaSubmit(turmaId, event) {
         }, 1000);
 
     } catch (error) {
-        console.error('Erro ao adicionar professor:', error);
+        console.error('❌ Erro ao adicionar professor:', error);
         showNotification('Erro ao adicionar professor: ' + error.message, 'error');
     }
 }
-
 // Função para visualizar detalhes do professor
 async function viewProfessorDetails(professorId) {
     try {
@@ -2352,22 +2416,35 @@ async function adicionarAlunoTurmaSubmit(turmaId, event) {
         return;
     }
 
+    console.log('📤 Adicionando aluno à turma:', { turmaId, alunoId });
+
     try {
         const response = await fetch(`${API_BASE}/admin/turmas/${turmaId}/alunos/${alunoId}`, {
             method: 'POST',
-            headers: getAuthHeaders()
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                data_matricula: new Date().toISOString().split('T')[0]
+            })
         });
 
-        if (response.ok) {
-            showNotification('Aluno adicionado à turma com sucesso!', 'success');
-            closeModal('add-aluno-turma-modal');
-            // Recarregar os detalhes da turma
-            viewTurmaDetails(turmaId);
-        } else {
-            const error = await response.json();
-            throw new Error(error.error || 'Erro ao adicionar aluno à turma');
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Erro na resposta:', errorText);
+            throw new Error(`Erro ${response.status}: ${errorText}`);
         }
+
+        const result = await response.json();
+
+        showNotification('Aluno adicionado à turma com sucesso!', 'success');
+        closeModal('add-aluno-turma-modal');
+
+        // Recarregar os detalhes da turma
+        setTimeout(() => {
+            viewTurmaDetails(turmaId);
+        }, 1000);
+
     } catch (error) {
+        console.error('❌ Erro ao adicionar aluno:', error);
         showNotification('Erro ao adicionar aluno: ' + error.message, 'error');
     }
 }
