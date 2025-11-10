@@ -716,21 +716,18 @@ function loadMenu() {
     }
 }
 
-// Headers de autenticação
+// Headers de autenticação melhorados
 function getAuthHeaders() {
-    if (!currentToken) {
-        console.error('Token não disponível');
-        return {
-            'Content-Type': 'application/json'
-        };
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+
+    if (currentToken) {
+        headers['Authorization'] = `Bearer ${currentToken}`;
     }
 
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${currentToken}`
-    };
+    return headers;
 }
-
 // Logout
 function logout() {
     currentUser = null;
