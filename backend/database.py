@@ -71,6 +71,24 @@ def init_db():
             FOREIGN KEY (professor_id) REFERENCES usuarios (id)
         )
     ''')
+
+    # Adicionar após a tabela de matérias no database.py
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS professor_alocacao (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            professor_id INTEGER,
+            turma_id INTEGER,
+            materia_id INTEGER,
+            dia_semana TEXT NOT NULL,
+            horario_inicio TIME NOT NULL,
+            horario_fim TIME NOT NULL,
+            criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (professor_id) REFERENCES usuarios (id),
+            FOREIGN KEY (turma_id) REFERENCES turmas (id),
+            FOREIGN KEY (materia_id) REFERENCES materias (id),
+            UNIQUE(turma_id, dia_semana, horario_inicio)
+        )
+    ''')
     
     # Tabela de atividades
     db.execute('''
