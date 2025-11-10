@@ -399,6 +399,13 @@ async function showSection(section) {
                 }
                 break;
 
+            case 'professores':
+                if (currentUser.tipo === 'admin') {
+                    sectionTitle.textContent = 'Gerenciar Professores';
+                    content = await loadProfessoresSection();
+                }
+                break;
+
             default:
                 sectionTitle.textContent = 'Seção em Desenvolvimento';
                 content = `

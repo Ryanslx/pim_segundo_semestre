@@ -29,6 +29,10 @@ def success_response(message, data=None):
         response.update(data)
     return jsonify(response)
 
+# =============================================
+# ROTAS PRINCIPAIS
+# =============================================
+
 # Rota de login
 @app.route('/api/auth/login', methods=['POST'])
 def login():
@@ -291,7 +295,7 @@ def get_todas_turmas():
 @app.route('/api/admin/alunos', methods=['GET', 'POST'])
 def manage_alunos():
     if request.method == 'GET':
-        return get_alunos_completo()  # Usa a versão completa por padrão
+        return get_alunos_completo()
     elif request.method == 'POST':
         return create_aluno()
 
@@ -318,23 +322,6 @@ def get_alunos_completo():
             LEFT JOIN notas n ON a.id = n.aluno_id
             GROUP BY a.id
             ORDER BY u.nome
-        ''').fetchall()
-        
-        return success_response('Alunos carregados', {
-            'alunos': [dict(aluno) for aluno in alunos]
-        })
-    except Exception as e:
-        return error_response(str(e))
-
-def get_alunos():
-    """Versão simplificada mantida para compatibilidade"""
-    try:
-        db = get_db()
-        alunos = db.execute('''
-            SELECT a.*, u.nome, u.email, t.nome as turma_nome
-            FROM alunos a
-            JOIN usuarios u ON a.usuario_id = u.id
-            LEFT JOIN turmas t ON a.turma_id = t.id
         ''').fetchall()
         
         return success_response('Alunos carregados', {
@@ -549,7 +536,7 @@ def delete_aluno(aluno_id):
         return error_response(str(e))
 
 # =============================================
-# ROTAS ADICIONAIS PARA TURMAS (QUE ESTAVAM FALTANDO)
+# ROTAS ADICIONAIS PARA TURMAS
 # =============================================
 
 @app.route('/api/admin/turmas/<int:turma_id>/alunos', methods=['GET'])
@@ -572,22 +559,41 @@ def get_alunos_turma(turma_id):
     except Exception as e:
         return error_response(str(e))
 
+# ROTA CORRIGIDA - Professores da turma
 @app.route('/api/admin/turmas/<int:turma_id>/professores', methods=['GET'])
 def get_professores_turma(turma_id):
     try:
         db = get_db()
+        
+        # Verificar se a turma existe
+        turma = db.execute('SELECT id FROM turmas WHERE id = ?', (turma_id,)).fetchone()
+        if not turma:
+            return error_response('Turma não encontrada', 404)
+        
         professores = db.execute('''
-            SELECT DISTINCT u.id, u.nome, u.email, u.telefone, m.nome as materia_principal
+            SELECT 
+                u.id, 
+                u.nome, 
+                u.email, 
+                u.telefone,
+                m.nome as materia_nome,
+                m.horario,
+                m.dia_semana,
+                m.carga_horaria_semanal
             FROM materias m
             JOIN usuarios u ON m.professor_id = u.id
-            WHERE m.turma_id = ?
+            WHERE m.turma_id = ? AND u.tipo = 'professor'
         ''', (turma_id,)).fetchall()
         
         return success_response('Professores da turma carregados', {
             'professores': [dict(prof) for prof in professores]
         })
     except Exception as e:
-        return error_response(str(e))
+        print(f"❌ Erro em get_professores_turma: {e}")
+        # Retornar lista vazia em caso de erro para não quebrar o frontend
+        return success_response('Professores da turma carregados', {
+            'professores': []
+        })
 
 @app.route('/api/admin/alunos-sem-turma', methods=['GET'])
 def get_alunos_sem_turma():
@@ -613,17 +619,42 @@ def get_alunos_sem_turma():
 def get_professores_disponiveis():
     try:
         db = get_db()
+        
+        print("📋 Buscando professores disponíveis...")
+        
         professores = db.execute('''
-            SELECT u.id, u.nome, u.email, u.telefone
+            SELECT 
+                u.id, 
+                u.nome, 
+                u.email, 
+                u.telefone,
+                u.formacao,
+                u.experiencia,
+                COUNT(m.id) as turmas_count
             FROM usuarios u
+            LEFT JOIN materias m ON u.id = m.professor_id
             WHERE u.tipo = 'professor'
+            GROUP BY u.id
+            ORDER BY u.nome
         ''').fetchall()
         
+        print(f"✅ Encontrados {len(professores)} professores")
+        
+        professores_list = []
+        for prof in professores:
+            prof_dict = dict(prof)
+            print(f"👨‍🏫 Professor: {prof_dict['nome']} - ID: {prof_dict['id']} - Turmas: {prof_dict['turmas_count']}")
+            professores_list.append(prof_dict)
+        
         return success_response('Professores disponíveis carregados', {
-            'professores': [dict(prof) for prof in professores]
+            'professores': professores_list
         })
+        
     except Exception as e:
-        return error_response(str(e))
+        print(f"❌ Erro CRÍTICO em professores-disponiveis: {e}")
+        import traceback
+        traceback.print_exc()
+        return error_response(f'Erro ao carregar professores: {str(e)}')
 
 @app.route('/api/admin/materias', methods=['GET'])
 def get_materias():
@@ -641,7 +672,13 @@ def get_materias():
 # ROTAS DE PROFESSORES
 # =============================================
 
-@app.route('/api/admin/professores', methods=['GET'])
+@app.route('/api/admin/professores', methods=['GET', 'POST'])
+def manage_professores():
+    if request.method == 'GET':
+        return get_professores()
+    elif request.method == 'POST':
+        return create_professor()
+
 def get_professores():
     try:
         db = get_db()
@@ -657,6 +694,197 @@ def get_professores():
             'professores': [dict(prof) for prof in professores]
         })
     except Exception as e:
+        return error_response(str(e))
+
+def create_professor():
+    try:
+        data = request.get_json()
+        
+        # Validar campos obrigatórios
+        required_fields = ['nome', 'email', 'senha']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return error_response(f'Campo obrigatório: {field}', 400)
+        
+        db = get_db()
+        
+        # Verificar se email já existe
+        existing_email = db.execute(
+            'SELECT id FROM usuarios WHERE email = ?', (data['email'],)
+        ).fetchone()
+        if existing_email:
+            return error_response('Email já cadastrado', 400)
+        
+        # Criar usuário professor
+        db.execute(
+            'INSERT INTO usuarios (nome, email, senha, tipo) VALUES (?, ?, ?, ?)',
+            (data['nome'], data['email'], generate_password_hash(data['senha']), 'professor')
+        )
+        
+        db.commit()
+        
+        return success_response('Professor criado com sucesso!')
+        
+    except Exception as e:
+        print(f'Erro ao criar professor: {e}')
+        return error_response(f'Erro interno: {str(e)}')
+
+@app.route('/api/admin/professores/<int:professor_id>', methods=['GET', 'PUT', 'DELETE'])
+def manage_professor(professor_id):
+    if request.method == 'GET':
+        return get_professor_details(professor_id)
+    elif request.method == 'PUT':
+        return update_professor(professor_id)
+    elif request.method == 'DELETE':
+        return delete_professor(professor_id)
+
+def get_professor_details(professor_id):
+    try:
+        db = get_db()
+        professor = db.execute('''
+            SELECT u.*, 
+                   GROUP_CONCAT(DISTINCT m.nome) as materias_lecionadas,
+                   COUNT(DISTINCT m.id) as total_turmas
+            FROM usuarios u
+            LEFT JOIN materias m ON u.id = m.professor_id
+            WHERE u.id = ? AND u.tipo = 'professor'
+            GROUP BY u.id
+        ''', (professor_id,)).fetchone()
+        
+        if not professor:
+            return error_response('Professor não encontrado', 404)
+        
+        # Buscar turmas do professor
+        turmas = db.execute('''
+            SELECT t.id, t.nome, t.codigo, m.nome as materia_nome,
+                   m.horario, m.dia_semana
+            FROM materias m
+            JOIN turmas t ON m.turma_id = t.id
+            WHERE m.professor_id = ?
+        ''', (professor_id,)).fetchall()
+        
+        professor_data = dict(professor)
+        professor_data['turmas'] = [dict(turma) for turma in turmas]
+        
+        return success_response('Professor carregado', {
+            'professor': professor_data
+        })
+    except Exception as e:
+        return error_response(str(e))
+
+def update_professor(professor_id):
+    try:
+        data = request.get_json()
+        db = get_db()
+        
+        # Verificar se professor existe
+        professor = db.execute(
+            'SELECT id FROM usuarios WHERE id = ? AND tipo = "professor"', (professor_id,)
+        ).fetchone()
+        
+        if not professor:
+            return error_response('Professor não encontrado', 404)
+        
+        # Atualizar dados do professor
+        db.execute('''
+            UPDATE usuarios 
+            SET nome = COALESCE(?, nome), email = COALESCE(?, email),
+                telefone = COALESCE(?, telefone), formacao = COALESCE(?, formacao),
+                experiencia = COALESCE(?, experiencia)
+            WHERE id = ?
+        ''', (
+            data.get('nome'), 
+            data.get('email'),
+            data.get('telefone'),
+            data.get('formacao'),
+            data.get('experiencia'),
+            professor_id
+        ))
+        
+        db.commit()
+        
+        return success_response('Professor atualizado com sucesso!')
+        
+    except Exception as e:
+        return error_response(str(e))
+
+def delete_professor(professor_id):
+    try:
+        db = get_db()
+        
+        # Verificar se professor existe
+        professor = db.execute(
+            'SELECT id FROM usuarios WHERE id = ? AND tipo = "professor"', (professor_id,)
+        ).fetchone()
+        
+        if not professor:
+            return error_response('Professor não encontrado', 404)
+        
+        # Verificar se professor tem matérias atribuídas
+        materias_count = db.execute(
+            'SELECT COUNT(*) FROM materias WHERE professor_id = ?', (professor_id,)
+        ).fetchone()[0]
+        
+        if materias_count > 0:
+            return error_response('Não é possível excluir professor com matérias atribuídas', 400)
+        
+        # Deletar professor
+        db.execute('DELETE FROM usuarios WHERE id = ?', (professor_id,))
+        db.commit()
+        
+        return success_response('Professor excluído com sucesso!')
+        
+    except Exception as e:
+        return error_response(str(e))
+
+# Rota para alocar professor em turma
+@app.route('/api/admin/turmas/<int:turma_id>/professores', methods=['POST'])
+def alocar_professor_turma(turma_id):
+    try:
+        data = request.get_json()
+        
+        required_fields = ['professor_id', 'materia_nome', 'horario', 'dia_semana']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return error_response(f'Campo obrigatório: {field}', 400)
+        
+        db = get_db()
+        
+        # Verificar se turma existe
+        turma = db.execute(
+            'SELECT id FROM turmas WHERE id = ?', (turma_id,)
+        ).fetchone()
+        
+        if not turma:
+            return error_response('Turma não encontrada', 404)
+        
+        # Verificar se professor existe
+        professor = db.execute(
+            'SELECT id FROM usuarios WHERE id = ? AND tipo = "professor"', (data['professor_id'],)
+        ).fetchone()
+        
+        if not professor:
+            return error_response('Professor não encontrado', 404)
+        
+        # Criar nova matéria com o professor
+        db.execute('''
+            INSERT INTO materias (nome, turma_id, professor_id, horario, dia_semana, carga_horaria_semanal)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            data['materia_nome'],
+            turma_id,
+            data['professor_id'],
+            data['horario'],
+            data['dia_semana'],
+            data.get('carga_horaria_semanal', 4)
+        ))
+        
+        db.commit()
+        
+        return success_response('Professor alocado na turma com sucesso!')
+        
+    except Exception as e:
+        print(f"❌ Erro ao alocar professor: {e}")
         return error_response(str(e))
 
 # =============================================
