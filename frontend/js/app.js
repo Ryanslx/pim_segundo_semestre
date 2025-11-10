@@ -188,13 +188,13 @@ async function loadInitialDashboard() {
 
         switch (currentUser.tipo) {
             case 'admin':
-                dashboardContent = await loadAdminDashboard();
+                dashboardContent = await loadAdminDashboardContent();
                 break;
             case 'professor':
-                dashboardContent = await loadProfessorDashboard();
+                dashboardContent = await loadProfessorDashboardContent();
                 break;
             case 'aluno':
-                dashboardContent = await loadAlunoDashboard();
+                dashboardContent = await loadAlunoDashboardContent();
                 break;
             default:
                 dashboardContent = '<div class="section"><h3>Tipo de usuário não reconhecido</h3></div>';
@@ -212,8 +212,8 @@ async function loadInitialDashboard() {
     }
 }
 
-// Dashboard do Admin
-async function loadAdminDashboard() {
+// Dashboard do Admin (função renomeada para evitar conflito)
+async function loadAdminDashboardContent() {
     try {
         const [turmasRes, alunosRes, professoresRes] = await Promise.all([
             fetch(`${API_BASE}/admin/turmas`, { headers: getAuthHeaders() }),
@@ -337,7 +337,6 @@ async function loadSustainabilityMetrics() {
 }
 
 // Navegação entre seções
-// Navegação entre seções
 async function showSection(section) {
     // Atualizar menu ativo
     document.querySelectorAll('.menu-item').forEach(item => {
@@ -430,13 +429,13 @@ async function loadDashboardContent() {
 
         switch (currentUser.tipo) {
             case 'admin':
-                dashboardContent = await loadAdminDashboard();
+                dashboardContent = await loadAdminDashboardContent();
                 break;
             case 'professor':
-                dashboardContent = await loadProfessorDashboard();
+                dashboardContent = await loadProfessorDashboardContent();
                 break;
             case 'aluno':
-                dashboardContent = await loadAlunoDashboard();
+                dashboardContent = await loadAlunoDashboardContent();
                 break;
             default:
                 dashboardContent = '<div class="section"><p>Tipo de usuário não reconhecido</p></div>';
@@ -454,123 +453,8 @@ async function loadDashboardContent() {
     }
 }
 
-// Renomear a função antiga para evitar conflito
-async function loadAdminDashboard() {
-    try {
-        const [turmasRes, alunosRes, professoresRes] = await Promise.all([
-            fetch(`${API_BASE}/admin/turmas`, { headers: getAuthHeaders() }),
-            fetch(`${API_BASE}/admin/alunos`, { headers: getAuthHeaders() }),
-            fetch(`${API_BASE}/admin/professores`, { headers: getAuthHeaders() })
-        ]);
-
-        if (!turmasRes.ok) throw new Error('Erro ao carregar turmas');
-        if (!alunosRes.ok) throw new Error('Erro ao carregar alunos');
-        if (!professoresRes.ok) throw new Error('Erro ao carregar professores');
-
-        const turmasData = await turmasRes.json();
-        const alunosData = await alunosRes.json();
-        const professoresData = await professoresRes.json();
-
-        return `
-            <div class="dashboard">
-                <div class="card">
-                    <div class="card-header">
-                        <div>
-                            <h3>${turmasData.turmas ? turmasData.turmas.length : 0}</h3>
-                            <p>Turmas Ativas</p>
-                        </div>
-                        <div class="card-icon blue">
-                            <i class="fas fa-users"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <div>
-                            <h3>${alunosData.alunos ? alunosData.alunos.length : 0}</h3>
-                            <p>Alunos Matriculados</p>
-                        </div>
-                        <div class="card-icon green">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <div>
-                            <h3>${professoresData.professores ? professoresData.professores.length : 0}</h3>
-                            <p>Professores</p>
-                        </div>
-                        <div class="card-icon orange">
-                            <i class="fas fa-chalkboard-teacher"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <div>
-                            <h3>95%</h3>
-                            <p>Taxa de Digitalização</p>
-                        </div>
-                        <div class="card-icon purple">
-                            <i class="fas fa-leaf"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="section">
-                <div class="section-header">
-                    <h2>Turmas Recentes</h2>
-                    <button class="btn btn-primary" onclick="showSection('turmas')">
-                        <i class="fas fa-eye"></i> Ver Todas
-                    </button>
-                </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Código</th>
-                                <th>Ano Letivo</th>
-                                <th>Período</th>
-                                <th>Alunos</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${turmasData.turmas && turmasData.turmas.length > 0 ?
-                turmasData.turmas.slice(0, 5).map(turma => `
-                                    <tr>
-                                        <td>${turma.nome}</td>
-                                        <td>${turma.codigo}</td>
-                                        <td>${turma.ano_letivo}</td>
-                                        <td>${turma.periodo}</td>
-                                        <td>${turma.alunos_matriculados || 0}/${turma.capacidade_max || 90}</td>
-                                    </tr>
-                                `).join('') :
-                '<tr><td colspan="5">Nenhuma turma encontrada</td></tr>'
-            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        console.error('Erro no dashboard admin:', error);
-        return `
-            <div class="section">
-                <h3>Erro ao carregar dashboard</h3>
-                <p>${error.message}</p>
-            </div>
-        `;
-    }
-}
-
-// Dashboard do Professor (simplificado)
-async function loadProfessorDashboard() {
+// Dashboard do Professor (função renomeada)
+async function loadProfessorDashboardContent() {
     return `
         <div class="dashboard">
             <div class="card">
@@ -617,8 +501,8 @@ async function loadProfessorDashboard() {
     `;
 }
 
-// Dashboard do Aluno (simplificado)
-async function loadAlunoDashboard() {
+// Dashboard do Aluno (função renomeada)
+async function loadAlunoDashboardContent() {
     return `
         <div class="dashboard">
             <div class="card">
@@ -728,6 +612,7 @@ function getAuthHeaders() {
 
     return headers;
 }
+
 // Logout
 function logout() {
     currentUser = null;
@@ -909,24 +794,6 @@ async function loadAtividadesAluno() {
     `;
 }
 
-async function loadProfessorDashboard() {
-    return `
-        <div class="section">
-            <h3>Dashboard Professor</h3>
-            <p>Funcionalidade em desenvolvimento...</p>
-        </div>
-    `;
-}
-
-async function loadAlunoDashboard() {
-    return `
-        <div class="section">
-            <h3>Dashboard Aluno</h3>
-            <p>Funcionalidade em desenvolvimento...</p>
-        </div>
-    `;
-}
-
 // Tratamento de erro global
 window.addEventListener('error', function (e) {
     console.error('Erro global:', e.error);
@@ -934,7 +801,7 @@ window.addEventListener('error', function (e) {
 
 // Verificar se todas as funções necessárias existem
 function checkFunctions() {
-    const requiredFunctions = ['showSection', 'loadDashboardContent', 'loadAdminDashboard'];
+    const requiredFunctions = ['showSection', 'loadDashboardContent', 'loadAdminDashboardContent'];
     requiredFunctions.forEach(func => {
         if (typeof window[func] === 'undefined') {
             console.error(`Função ${func} não está definida!`);
