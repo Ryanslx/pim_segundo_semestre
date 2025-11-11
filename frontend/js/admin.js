@@ -53,14 +53,9 @@ async function loadTurmasSection() {
                                                 ${(turma.alunos_matriculados > 0) ? 'disabled title="Não é possível excluir turma com alunos"' : 'title="Excluir turma"'}>
                                             <i class="fas fa-trash"></i>
                                         </button>
-<<<<<<< HEAD
-                                        <button class="btn btn-sm btn-success" onclick="viewTurmaDetails(${turma.id})" title="Ver detalhes">
-                                            <i class="fas fa-eye"></i>
-=======
                                         
                                         <button class="btn btn-sm btn-success" onclick="viewTurmaDetails(${turma.id})" title="Ver detalhes e integrantes">
                                             <i class="fas fa-users"></i>
->>>>>>> origin/admin
                                         </button>
                                     </td>
                                 </tr>
@@ -88,8 +83,6 @@ async function loadTurmasSection() {
     }
 }
 
-<<<<<<< HEAD
-=======
 // =============================================
 // GERENCIAR PROFESSORES - ADMIN
 // =============================================
@@ -661,7 +654,6 @@ async function deleteProfessor(professorId) {
 // Atualizar a função showSection para incluir a seção de professores
 // Adicione este case no switch statement da função showSection no app.js:
 
->>>>>>> origin/admin
 // Gerenciar Alunos
 async function loadAlunosSection() {
     try {
@@ -1371,12 +1363,6 @@ async function updateTurma(turmaId, event) {
     }
 }
 
-<<<<<<< HEAD
-// Função para visualizar detalhes da turma
-function viewTurmaDetails(turmaId) {
-    showNotification(`Visualizando detalhes da turma ID: ${turmaId}`, 'info');
-    // Aqui você pode implementar uma modal mais detalhada se quiser
-=======
 
 // Função para visualizar detalhes completos da turma - MELHORADA
 async function viewTurmaDetails(turmaId) {
@@ -2677,7 +2663,6 @@ async function removerProfessorTurma(turmaId, professorId, professorNome) {
     } catch (error) {
         showNotification('Erro ao remover professor: ' + error.message, 'error');
     }
->>>>>>> origin/admin
 }
 
 function openCreateTurmaModal() {

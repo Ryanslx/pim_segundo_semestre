@@ -60,10 +60,7 @@ body {
     font-size: 0.9rem;
 }
 
-<<<<<<< HEAD
-=======
 /* Form Elements */
->>>>>>> origin/admin
 .form-group {
     margin-bottom: 20px;
 }
@@ -94,8 +91,6 @@ body {
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
 }
 
-<<<<<<< HEAD
-=======
 .form-row {
     display: flex;
     gap: 15px;
@@ -163,7 +158,6 @@ body {
     font-weight: 600;
 }
 
->>>>>>> origin/admin
 .login-btn {
     width: 100%;
     padding: 14px;
@@ -183,8 +177,6 @@ body {
     transform: translateY(-2px);
 }
 
-<<<<<<< HEAD
-=======
 .btn-logout {
     width: 100%;
     padding: 12px;
@@ -201,7 +193,6 @@ body {
 }
 
 /* Demo & Info Sections */
->>>>>>> origin/admin
 .demo-accounts {
     background: var(--light);
     padding: 15px;
@@ -220,28 +211,18 @@ body {
     color: var(--gray);
 }
 
-<<<<<<< HEAD
-.sustainability-info {
-=======
 .sustainability-info,
 .sustainability-badge {
->>>>>>> origin/admin
     text-align: center;
     padding: 15px;
     background: rgba(46, 204, 113, 0.1);
     border-radius: 8px;
     color: var(--green);
     font-size: 0.9rem;
-<<<<<<< HEAD
-}
-
-/* Main System */
-=======
     margin-bottom: 15px;
 }
 
 /* Main System Layout */
->>>>>>> origin/admin
 .container {
     display: flex;
     min-height: 100vh;
@@ -309,33 +290,6 @@ body {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-<<<<<<< HEAD
-.sustainability-badge {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 10px;
-    border-radius: 6px;
-    text-align: center;
-    margin-bottom: 15px;
-    font-size: 0.8rem;
-}
-
-.btn-logout {
-    width: 100%;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.btn-logout:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-=======
->>>>>>> origin/admin
 /* Main Content */
 .main-content {
     flex: 1;
@@ -401,11 +355,7 @@ body {
     text-align: center;
 }
 
-<<<<<<< HEAD
-/* Dashboard Cards */
-=======
 /* Cards & Dashboard */
->>>>>>> origin/admin
 .dashboard {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -457,13 +407,6 @@ body {
     background: var(--warning);
 }
 
-<<<<<<< HEAD
-.card-icon.pink {
-    background: var(--danger);
-}
-
-=======
->>>>>>> origin/admin
 .card-icon.purple {
     background: #8a2be2;
 }
@@ -503,47 +446,10 @@ body {
     color: var(--primary);
 }
 
-<<<<<<< HEAD
-.btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.3s;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.btn-primary {
-    background: var(--primary);
-    color: white;
-}
-
-.btn-primary:hover {
-    background: var(--secondary);
-    transform: translateY(-2px);
-}
-
-.btn-success {
-    background: var(--success);
-    color: white;
-}
-
-.btn-success:hover {
-    background: #38b2d6;
-}
-
-.btn-danger {
-    background: var(--danger);
-    color: white;
-=======
 .section-actions {
     display: flex;
     align-items: center;
     gap: 1rem;
->>>>>>> origin/admin
 }
 
 /* Tables */
@@ -576,14 +482,6 @@ tr:hover {
     background: rgba(67, 97, 238, 0.02);
 }
 
-<<<<<<< HEAD
-/* Badges */
-.badge {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 500;
-=======
 .compact-table {
     font-size: 0.9rem;
 }
@@ -599,30 +497,10 @@ tr:hover {
     border-radius: 6px;
     font-size: 0.8rem;
     font-weight: 600;
->>>>>>> origin/admin
     display: inline-block;
 }
 
 .badge-success {
-<<<<<<< HEAD
-    background: rgba(46, 204, 113, 0.1);
-    color: #27ae60;
-}
-
-.badge-warning {
-    background: rgba(248, 150, 30, 0.1);
-    color: var(--warning);
-}
-
-.badge-danger {
-    background: rgba(247, 37, 133, 0.1);
-    color: var(--danger);
-}
-
-.badge-info {
-    background: rgba(67, 97, 238, 0.1);
-    color: var(--primary);
-=======
     background: #d4edda;
     color: #155724;
     border: 1px solid #c3e6cb;
@@ -659,7 +537,6 @@ tr:hover {
     border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 600;
->>>>>>> origin/admin
 }
 
 /* Modals */
@@ -681,15 +558,9 @@ tr:hover {
     background: white;
     padding: 30px;
     border-radius: 15px;
-<<<<<<< HEAD
-    width: 90%;
-    max-width: 500px;
-    max-height: 80vh;
-=======
     width: 85%;
     max-width: 100%;
     max-height: 90%;
->>>>>>> origin/admin
     overflow-y: auto;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
@@ -712,8 +583,6 @@ tr:hover {
     padding: 5px;
 }
 
-<<<<<<< HEAD
-=======
 /* Modal de Detalhes da Turma - Otimizado para Telas Grandes */
 .modal-turma-detalhes .modal-content {
     max-width: 1200px;
@@ -1111,7 +980,6 @@ tr:hover {
     margin-left: 1rem;
 }
 
->>>>>>> origin/admin
 /* Rating Stars */
 .rating-stars {
     display: flex;
@@ -1166,9 +1034,6 @@ tr:hover {
     transform: scale(1.1);
 }
 
-<<<<<<< HEAD
-/* Responsive */
-=======
 /* User Info Styles */
 .student-info,
 .teacher-info {
@@ -1499,7 +1364,6 @@ tr:hover {
 }
 
 /* Responsive Design Geral */
->>>>>>> origin/admin
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
@@ -1518,14 +1382,6 @@ tr:hover {
         grid-template-columns: 1fr;
     }
 
-<<<<<<< HEAD
-    .section-header {
-        flex-direction: column;
-        gap: 15px;
-        align-items: flex-start;
-    }
-
-=======
     .section-header,
     .form-actions {
         flex-direction: column;
@@ -1563,7 +1419,6 @@ tr:hover {
         padding: 0.5rem 0.25rem;
     }
 
->>>>>>> origin/admin
     .ai-assistant {
         bottom: 20px;
         right: 20px;
@@ -1575,65 +1430,6 @@ tr:hover {
     }
 }
 
-<<<<<<< HEAD
-/* Sustainability Metrics */
-.sustainability-metrics {
-    background: linear-gradient(135deg, #2ecc71, #27ae60);
-    color: white;
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 30px;
-}
-
-.metric-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    text-align: center;
-}
-
-.metric-item h3 {
-    font-size: 2rem;
-    margin-bottom: 5px;
-}
-
-.metric-item p {
-    font-size: 0.9rem;
-    opacity: 0.9;
-}
-
-/* Estilos para a seção de alunos */
-.form-row {
-    display: flex;
-    gap: 15px;
-}
-
-.form-row .form-group {
-    flex: 1;
-}
-
-.student-info {
-    line-height: 1.4;
-}
-
-.student-info small {
-    color: var(--gray);
-    font-size: 0.8rem;
-}
-
-/* Badges adicionais */
-.badge-secondary {
-    background-color: rgba(108, 117, 125, 0.1);
-    color: var(--gray);
-}
-
-/* Ajustes responsivos */
-@media (max-width: 768px) {
-    .form-row {
-        flex-direction: column;
-        gap: 0;
-    }
-=======
 .text-center {
     text-align: center;
 }
@@ -1688,5 +1484,4 @@ tr:hover {
 
 .info-box strong {
     color: var(--primary);
->>>>>>> origin/admin
 }
