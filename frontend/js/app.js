@@ -406,6 +406,28 @@ async function showSection(section) {
                 }
                 break;
 
+            // Adicionar estes cases na função showSection() no app.js
+            case 'materias':
+                if (currentUser.tipo === 'admin') {
+                    sectionTitle.textContent = 'Gerenciar Matérias';
+                    content = await loadMateriasSection();
+                }
+                break;
+
+            case 'relatorios':
+                if (currentUser.tipo === 'admin') {
+                    sectionTitle.textContent = 'Relatórios do Sistema';
+                    content = await loadRelatoriosSection();
+                }
+                break;
+
+            case 'configuracoes':
+                if (currentUser.tipo === 'admin') {
+                    sectionTitle.textContent = 'Configurações do Sistema';
+                    content = await loadConfiguracoesSection();
+                }
+                break;
+
             default:
                 sectionTitle.textContent = 'Seção em Desenvolvimento';
                 content = `
@@ -568,7 +590,9 @@ function loadMenu() {
                 { icon: 'fas fa-users', text: 'Gerenciar Turmas', section: 'turmas' },
                 { icon: 'fas fa-user-graduate', text: 'Gerenciar Alunos', section: 'alunos' },
                 { icon: 'fas fa-chalkboard-teacher', text: 'Gerenciar Professores', section: 'professores' },
-                { icon: 'fas fa-chart-bar', text: 'Relatórios', section: 'relatorios' }
+                { icon: 'fas fa-book', text: 'Gerenciar Matérias', section: 'materias' }, // NOVO
+                { icon: 'fas fa-chart-bar', text: 'Relatórios', section: 'relatorios' }, // NOVO
+                { icon: 'fas fa-cog', text: 'Configurações', section: 'configuracoes' } // NOVO
             ];
             break;
 

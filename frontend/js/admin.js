@@ -160,53 +160,53 @@ async function loadProfessoresSection() {
                             </tr>
                         </thead>
                         <tbody>
-                            ${data.professores && data.professores.length > 0 ? data.professores.map(professor => `
-                                <tr>
-                                    <td>
-                                        <div class="teacher-info">
-                                            <strong>${professor.nome}</strong>
-                                            ${professor.formacao ? `<br><small>${professor.formacao}</small>` : ''}
-                                        </div>
-                                    </td>
-                                    <td>${professor.email}</td>
-                                    <td>${professor.telefone || 'Não informado'}</td>
-                                    <td>
-                                        <span class="badge badge-info">
-                                            ${professor.materias_lecionadas || 'Nenhuma'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge ${professor.total_turmas > 0 ? 'badge-success' : 'badge-warning'}">
-                                            ${professor.total_turmas || 0} turma(s)
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge ${professor.total_turmas > 0 ? 'badge-success' : 'badge-secondary'}">
-                                            ${professor.total_turmas > 0 ? 'Ativo' : 'Inativo'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-info" onclick="viewProfessorDetails(${professor.id})" title="Ver detalhes">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-warning" onclick="editProfessor(${professor.id})" title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-success" onclick="openAlocarProfessorModal(${professor.id})" title="Alocar em turma">
-                                            <i class="fas fa-link"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-danger" onclick="deleteProfessor(${professor.id})" 
-                                                ${professor.total_turmas > 0 ? 'disabled title="Não é possível excluir professor com turmas"' : 'title="Excluir professor"'}>
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            `).join('') : `
-                                <tr>
-                                    <td colspan="7" class="text-center">Nenhum professor encontrado</td>
-                                </tr>
-                            `}
-                        </tbody>
+    ${data.professores && data.professores.length > 0 ? data.professores.map(professor => `
+        <tr>
+            <td>
+                <div class="teacher-info">
+                    <strong>${professor.nome}</strong>
+                    ${professor.formacao ? `<br><small>${professor.formacao}</small>` : ''}
+                </div>
+            </td>
+            <td>${professor.email}</td>
+            <td>${professor.telefone || 'Não informado'}</td>
+            <td>
+                <span class="badge badge-info">
+                    ${professor.materias_lecionadas || 'Nenhuma'}
+                </span>
+            </td>
+            <td>
+                <span class="badge ${professor.total_turmas > 0 ? 'badge-success' : 'badge-secondary'}">
+                    ${professor.total_turmas || 0} turma(s)
+                </span>
+            </td>
+            <td>
+                <span class="badge ${professor.total_turmas > 0 ? 'badge-success' : 'badge-secondary'}">
+                    ${professor.total_turmas > 0 ? 'Ativo' : 'Inativo'}
+                </span>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick="viewProfessorDetails(${professor.id})" title="Ver detalhes">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-warning" onclick="editProfessor(${professor.id})" title="Editar">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-success" onclick="openAlocarProfessorModal(${professor.id})" title="Alocar em turma">
+                    <i class="fas fa-link"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteProfessor(${professor.id})" 
+                        ${professor.total_turmas > 0 ? 'disabled title="Não é possível excluir professor com turmas"' : 'title="Excluir professor"'}>
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('') : `
+        <tr>
+            <td colspan="7" class="text-center">Nenhum professor encontrado</td>
+        </tr>
+    `}
+</tbody>
                     </table>
                 </div>
             </div>
@@ -307,35 +307,58 @@ async function createProfessor(event) {
     }
 }
 
-// Visualizar detalhes do professor
+
+// Visualizar detalhes do professor - CORRIGIDA
 async function viewProfessorDetails(professorId) {
     try {
-        const response = await fetch(`${API_BASE}/admin/professores/${professorId}`, {
+        console.log('Carregando detalhes do professor:', professorId);
+
+        // Carregar dados básicos do professor
+        const professorResponse = await fetch(`${API_BASE}/admin/professores/${professorId}`, {
             headers: getAuthHeaders()
         });
 
-        if (!response.ok) {
+        if (!professorResponse.ok) {
             throw new Error('Erro ao carregar dados do professor');
         }
 
-        const data = await response.json();
-        const professor = data.professor;
+        const professorData = await professorResponse.json();
+        const professor = professorData.professor;
 
-        const turmasHTML = professor.turmas && professor.turmas.length > 0 ?
-            professor.turmas.map(turma => `
-                <div class="turma-alocada-item">
-                    <div class="turma-info">
-                        <strong>${turma.nome}</strong> (${turma.codigo})
-                        <br>
-                        <small>Matéria: ${turma.materia_nome}</small>
-                        <br>
-                        <small>Horário: ${turma.dia_semana} - ${turma.horario}</small>
-                    </div>
-                    <button class="btn btn-sm btn-danger" onclick="desalocarProfessor(${professorId}, ${turma.id}, '${turma.materia_nome}')">
-                        <i class="fas fa-unlink"></i> Remover
-                    </button>
-                </div>
-            `).join('') : '<p>Nenhuma turma atribuída</p>';
+        // Carregar turmas do professor - COM TRATAMENTO DE ERRO
+        let turmasHTML = '<p>Nenhuma turma atribuída</p>';
+        try {
+            const turmasResponse = await fetch(`${API_BASE}/admin/professores/${professorId}/turmas`, {
+                headers: getAuthHeaders()
+            });
+
+            if (turmasResponse.ok) {
+                const turmasData = await turmasResponse.json();
+                if (turmasData.turmas && turmasData.turmas.length > 0) {
+                    turmasHTML = turmasData.turmas.map(turma => `
+                        <div class="turma-alocada-item">
+                            <div class="turma-info">
+                                <strong>${turma.turma_nome}</strong> (${turma.codigo})
+                                <br>
+                                <small>Matéria: ${turma.materia_nome}</small>
+                                <br>
+                                <small>Horário: ${turma.dia_semana} - ${turma.horario}</small>
+                                ${turma.carga_horaria_semanal ? `<br><small>Carga horária: ${turma.carga_horaria_semanal}h/semana</small>` : ''}
+                            </div>
+                            <button class="btn btn-sm btn-danger" onclick="desalocarProfessor(${professorId}, ${turma.id}, '${turma.materia_nome}')">
+                                <i class="fas fa-unlink"></i> Remover
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            } else {
+                console.warn('Erro ao carregar turmas do professor, usando fallback');
+                turmasHTML = '<p>Erro ao carregar turmas. Tente novamente.</p>';
+            }
+        } catch (turmaError) {
+            console.warn('Erro de conexão ao carregar turmas:', turmaError);
+            turmasHTML = '<p>Não foi possível carregar as turmas do professor.</p>';
+        }
 
         const modalContent = `
             <div class="modal-header">
@@ -474,47 +497,55 @@ async function openAlocarProfessorModal(professorId) {
     }
 }
 
-// Alocar professor em turma
+// Alocar professor em turma - CORRIGIDA
 async function alocarProfessor(professorId, event) {
     event.preventDefault();
 
     const formData = {
+        professor_id: professorId, // Adicionar o professor_id explicitamente
         turma_id: document.getElementById('alocar-turma').value,
         materia_nome: document.getElementById('alocar-materia').value,
         dia_semana: document.getElementById('alocar-dia').value,
         horario: document.getElementById('alocar-horario').value
     };
 
+    console.log('Enviando dados para alocação:', formData);
+
     try {
-        const response = await fetch(`${API_BASE}/admin/professores/${professorId}/alocar`, {
+        // Usar a rota correta que já existe no backend
+        const response = await fetch(`${API_BASE}/admin/turmas/${formData.turma_id}/professores`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(formData)
         });
 
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ${response.status}: ${errorText}`);
+        }
+
         const result = await response.json();
 
-        if (response.ok) {
-            showNotification('Professor alocado com sucesso!', 'success');
-            closeModal('alocar-professor-modal');
-            // Recarregar a seção de professores
-            showSection('professores');
-        } else {
-            throw new Error(result.error || 'Erro ao alocar professor');
-        }
+        showNotification('Professor alocado com sucesso!', 'success');
+        closeModal('alocar-professor-modal');
+        // Recarregar a seção de professores
+        showSection('professores');
     } catch (error) {
+        console.error('Erro ao alocar professor:', error);
         showNotification('Erro ao alocar professor: ' + error.message, 'error');
     }
 }
 
-// Desalocar professor de turma
+// Desalocar professor de turma 
 async function desalocarProfessor(professorId, materiaId, materiaNome) {
     if (!confirm(`Tem certeza que deseja remover o professor da matéria "${materiaNome}"?`)) {
         return;
     }
 
     try {
-        const response = await fetch(`${API_BASE}/admin/professores/${professorId}/desalocar/${materiaId}`, {
+        // NOTA: Esta rota pode precisar ser implementada no backend
+        // Por enquanto, vamos usar a rota de remover professor da turma
+        const response = await fetch(`${API_BASE}/admin/turmas/${materiaId}/professores/${professorId}`, {
             method: 'DELETE',
             headers: getAuthHeaders()
         });
@@ -1613,7 +1644,7 @@ function renderTurmaDetailsModal(turma, alunos, professores) {
                         </div>
                         <div class="info-card-expanded">
                             <strong>👥 Capacidade</strong>
-                            <span>${alunos.length} / ${turma.capacidade_max}</span>
+                            <span>${Math.max(0, alunos.length)} / ${turma.capacidade_max}</span>
                         </div>
                         <div class="info-card-expanded">
                             <strong>📊 Status</strong>
@@ -1684,7 +1715,7 @@ function renderTurmaDetailsModal(turma, alunos, professores) {
                                         <button class="btn btn-info" onclick="viewAlunoDetails(${aluno.id})">
                                             <i class="fas fa-eye"></i> Ver Detalhes
                                         </button>
-                                        <button class="btn btn-warning" onclick="showMockRemoverAluno(${turma.id}, ${aluno.id}, '${aluno.nome}')">
+                                        <button class="btn btn-warning" onclick="removerAlunoTurma(${turma.id}, ${aluno.id}, '${aluno.nome.replace(/'/g, "\\'")}')">
                                             <i class="fas fa-user-minus"></i> Remover
                                         </button>
                                     </div>
@@ -1727,7 +1758,7 @@ function renderTurmaDetailsModal(turma, alunos, professores) {
                                         <div class="integrante-info-expanded">
                                             <div class="integrante-nome-expanded">${professor.nome}</div>
                                             <div class="integrante-detalhes-expanded">
-                                                <strong>Matéria:</strong> ${professor.materia_principal || 'Professor Geral'}
+                                                <strong>Matéria:</strong> ${professor.materia_nome || 'Professor Geral'}
                                             </div>
                                             <div class="integrante-email-expanded">
                                                 <i class="fas fa-envelope"></i> ${professor.email}
@@ -1750,10 +1781,10 @@ function renderTurmaDetailsModal(turma, alunos, professores) {
                                         </div>
                                     </div>
                                     <div class="integrante-actions-expanded">
-                                        <button class="btn btn-info" onclick="showMockProfessorDetails(${professor.id})">
+                                        <button class="btn btn-info" onclick="viewProfessorDetails(${professor.id})">
                                             <i class="fas fa-eye"></i> Ver Detalhes
                                         </button>
-                                        <button class="btn btn-warning" onclick="showMockRemoverProfessor(${turma.id}, ${professor.id}, '${professor.nome}')">
+                                        <button class="btn btn-warning" onclick="removerProfessorTurma(${turma.id}, ${professor.id}, '${professor.nome.replace(/'/g, "\\'")}')">
                                             <i class="fas fa-user-minus"></i> Remover
                                         </button>
                                     </div>
@@ -2333,24 +2364,6 @@ async function editarProfessor(professorId) {
     // Esta função abriria um modal de edição para o professor
 }
 
-// =============================================
-// ATUALIZAR A FUNÇÃO renderTurmaDetailsModal
-// =============================================
-
-// Atualizar as ações nos cards de alunos e professores na função renderTurmaDetailsModal
-// Substituir as funções mock pelas funções reais:
-
-// Nos botões de alunos, alterar de:
-// onclick="showMockRemoverAluno(...)" 
-// para:
-// onclick="removerAlunoTurma(...)"
-
-// Nos botões de professores, alterar de:
-// onclick="showMockRemoverProfessor(...)" 
-// onclick="showMockProfessorDetails(...)"
-// para:
-// onclick="removerProfessorTurma(...)"
-// onclick="viewProfessorDetails(...)"
 
 // Função para adicionar aluno à turma
 async function adicionarAlunoTurma(turmaId) {
@@ -2404,19 +2417,17 @@ async function adicionarAlunoTurma(turmaId) {
     }
 }
 
-// Função para submeter adição de aluno à turma
+
+// Função para adicionar aluno à turma 
 async function adicionarAlunoTurmaSubmit(turmaId, event) {
     event.preventDefault();
 
-    const alunoSelect = document.getElementById('aluno-select');
-    const alunoId = alunoSelect.value;
+    const alunoId = document.getElementById('aluno-select').value;
 
     if (!alunoId) {
         showNotification('Selecione um aluno', 'warning');
         return;
     }
-
-    console.log('📤 Adicionando aluno à turma:', { turmaId, alunoId });
 
     try {
         const response = await fetch(`${API_BASE}/admin/turmas/${turmaId}/alunos/${alunoId}`, {
@@ -2427,25 +2438,64 @@ async function adicionarAlunoTurmaSubmit(turmaId, event) {
             })
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Erro na resposta:', errorText);
-            throw new Error(`Erro ${response.status}: ${errorText}`);
-        }
-
-        const result = await response.json();
-
-        showNotification('Aluno adicionado à turma com sucesso!', 'success');
-        closeModal('add-aluno-turma-modal');
-
-        // Recarregar os detalhes da turma
-        setTimeout(() => {
+        if (response.ok) {
+            showNotification('Aluno adicionado à turma com sucesso!', 'success');
+            closeModal('add-aluno-turma-modal');
             viewTurmaDetails(turmaId);
-        }, 1000);
-
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Erro ao adicionar aluno');
+        }
     } catch (error) {
-        console.error('❌ Erro ao adicionar aluno:', error);
         showNotification('Erro ao adicionar aluno: ' + error.message, 'error');
+    }
+}
+
+// Função para remover aluno da turma (JÁ EXISTE - apenas certificar que está correta)
+async function removerAlunoTurma(turmaId, alunoId, alunoNome) {
+    if (!confirm(`Tem certeza que deseja remover o aluno "${alunoNome}" desta turma?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/admin/turmas/${turmaId}/alunos/${alunoId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            showNotification('Aluno removido da turma com sucesso!', 'success');
+            viewTurmaDetails(turmaId);
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Erro ao remover aluno');
+        }
+    } catch (error) {
+        showNotification('Erro ao remover aluno: ' + error.message, 'error');
+    }
+}
+
+// Função para remover professor da turma (NOVA)
+async function removerProfessorTurma(turmaId, professorId, professorNome) {
+    if (!confirm(`Tem certeza que deseja remover o professor "${professorNome}" desta turma?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/admin/turmas/${turmaId}/professores/${professorId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            showNotification('Professor removido da turma com sucesso!', 'success');
+            viewTurmaDetails(turmaId);
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Erro ao remover professor');
+        }
+    } catch (error) {
+        showNotification('Erro ao remover professor: ' + error.message, 'error');
     }
 }
 
@@ -2634,11 +2684,6 @@ async function verificarProfessores() {
 
 // Execute no console: verificarProfessores()
 
-// Função para visualizar detalhes do professor
-async function viewProfessorDetails(professorId) {
-    showNotification(`Visualizando detalhes do professor ID: ${professorId}`, 'info');
-    // Implementar modal de detalhes do professor similar ao de alunos
-}
 
 // Função para remover professor da turma
 async function removerProfessorTurma(turmaId, professorId, professorNome) {
@@ -2805,4 +2850,486 @@ function showCustomModal(modalId, content) {
     `;
 
     modal.style.display = 'flex';
+}
+
+// =============================================
+// SISTEMA DE MATÉRIAS 
+// =============================================
+
+async function loadMateriasSection() {
+    try {
+        const response = await fetch(`${API_BASE}/admin/materias`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao carregar matérias');
+        }
+
+        const data = await response.json();
+
+        return `
+            <div class="section">
+                <div class="section-header">
+                    <h2>Gerenciar Matérias</h2>
+                    <button class="btn btn-primary" onclick="openCreateMateriaModal()">
+                        <i class="fas fa-plus"></i> Nova Matéria
+                    </button>
+                </div>
+                
+                <div class="dashboard">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>${data.materias ? data.materias.length : 0}</h3>
+                                <p>Total de Matérias</p>
+                            </div>
+                            <div class="card-icon blue">
+                                <i class="fas fa-book"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Matéria</th>
+                                <th>Turma</th>
+                                <th>Professor</th>
+                                <th>Horário</th>
+                                <th>Dia</th>
+                                <th>Carga Horária</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.materias && data.materias.length > 0 ? data.materias.map(materia => `
+                                <tr>
+                                    <td>${materia.nome || 'N/A'}</td>
+                                    <td>${materia.turma_nome || 'N/A'}</td>
+                                    <td>${materia.professor_nome || 'N/A'}</td>
+                                    <td>${materia.horario || 'N/A'}</td>
+                                    <td>${materia.dia_semana || 'N/A'}</td>
+                                    <td>${materia.carga_horaria_semanal || 0}h</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="editMateria(${materia.id})" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteMateria(${materia.id})" title="Excluir">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('') : `
+                                <tr>
+                                    <td colspan="7" class="text-center">Nenhuma matéria encontrada</td>
+                                </tr>
+                            `}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Erro ao carregar matérias:', error);
+        return `
+            <div class="section">
+                <h3>Erro ao carregar matérias</h3>
+                <p>${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+// Modal para criar matéria
+async function openCreateMateriaModal() {
+    try {
+        // Carregar turmas e professores
+        const [turmasRes, professoresRes] = await Promise.all([
+            fetch(`${API_BASE}/admin/todas-turmas`, { headers: getAuthHeaders() }),
+            fetch(`${API_BASE}/admin/professores-disponiveis`, { headers: getAuthHeaders() })
+        ]);
+
+        const turmasData = await turmasRes.json();
+        const professoresData = await professoresRes.json();
+
+        const turmasOptions = turmasData.turmas ? turmasData.turmas.map(turma => `
+            <option value="${turma.id}">${turma.nome} (${turma.codigo})</option>
+        `).join('') : '<option value="">Nenhuma turma disponível</option>';
+
+        const professoresOptions = professoresData.professores ? professoresData.professores.map(prof => `
+            <option value="${prof.id}">${prof.nome} - ${prof.formacao || 'Sem formação'}</option>
+        `).join('') : '<option value="">Nenhum professor disponível</option>';
+
+        const modalContent = `
+            <div class="modal-header">
+                <h3>Criar Nova Matéria</h3>
+                <button class="modal-close" onclick="closeModal('create-materia-modal')">&times;</button>
+            </div>
+            <form id="create-materia-form" onsubmit="createMateria(event)">
+                <div class="form-group">
+                    <label for="materia-nome">Nome da Matéria *</label>
+                    <input type="text" id="materia-nome" required placeholder="Ex: Matemática, Português">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="materia-turma">Turma *</label>
+                        <select id="materia-turma" required>
+                            <option value="">Selecione uma turma...</option>
+                            ${turmasOptions}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="materia-professor">Professor *</label>
+                        <select id="materia-professor" required>
+                            <option value="">Selecione um professor...</option>
+                            ${professoresOptions}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="materia-horario">Horário *</label>
+                        <input type="text" id="materia-horario" required placeholder="Ex: 08:00-09:30">
+                    </div>
+                    <div class="form-group">
+                        <label for="materia-dia">Dia da Semana *</label>
+                        <select id="materia-dia" required>
+                            <option value="">Selecione...</option>
+                            <option value="segunda">Segunda-feira</option>
+                            <option value="terca">Terça-feira</option>
+                            <option value="quarta">Quarta-feira</option>
+                            <option value="quinta">Quinta-feira</option>
+                            <option value="sexta">Sexta-feira</option>
+                            <option value="sabado">Sábado</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="materia-carga-horaria">Carga Horária Semanal (h)</label>
+                        <input type="number" id="materia-carga-horaria" min="1" max="40" value="4" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="materia-data-inicio">Data de Início</label>
+                        <input type="date" id="materia-data-inicio" value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="materia-observacoes">Observações</label>
+                    <textarea id="materia-observacoes" placeholder="Observações sobre a matéria" rows="3"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('create-materia-modal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Matéria</button>
+                </div>
+            </form>
+        `;
+
+        showCustomModal('create-materia-modal', modalContent);
+
+    } catch (error) {
+        console.error('Erro ao carregar dados para criar matéria:', error);
+        showNotification('Erro ao carregar dados: ' + error.message, 'error');
+    }
+}
+
+// Criar matéria
+async function createMateria(event) {
+    event.preventDefault();
+
+    const formData = {
+        nome: document.getElementById('materia-nome').value,
+        turma_id: document.getElementById('materia-turma').value,
+        professor_id: document.getElementById('materia-professor').value,
+        horario: document.getElementById('materia-horario').value,
+        dia_semana: document.getElementById('materia-dia').value,
+        carga_horaria_semanal: parseInt(document.getElementById('materia-carga-horaria').value),
+        data_inicio: document.getElementById('materia-data-inicio').value,
+        observacoes: document.getElementById('materia-observacoes').value || null
+    };
+
+    try {
+        const response = await fetch(`${API_BASE}/admin/turmas/${formData.turma_id}/professores`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(formData)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ${response.status}: ${errorText}`);
+        }
+
+        const result = await response.json();
+
+        showNotification('Matéria criada com sucesso!', 'success');
+        closeModal('create-materia-modal');
+        showSection('materias');
+
+    } catch (error) {
+        console.error('Erro ao criar matéria:', error);
+        showNotification('Erro ao criar matéria: ' + error.message, 'error');
+    }
+}
+
+// =============================================
+// RELATÓRIOS  
+// =============================================
+
+async function loadRelatoriosSection() {
+    return `
+        <div class="section">
+            <div class="section-header">
+                <h2>Relatórios do Sistema</h2>
+            </div>
+            
+            <div class="dashboard">
+                <div class="card" onclick="gerarRelatorio('alunos')" style="cursor: pointer;">
+                    <div class="card-header">
+                        <div>
+                            <h3>📊</h3>
+                            <p>Relatório de Alunos</p>
+                        </div>
+                        <div class="card-icon blue">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card" onclick="gerarRelatorio('professores')" style="cursor: pointer;">
+                    <div class="card-header">
+                        <div>
+                            <h3>👨‍🏫</h3>
+                            <p>Relatório de Professores</p>
+                        </div>
+                        <div class="card-icon green">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card" onclick="gerarRelatorio('turmas')" style="cursor: pointer;">
+                    <div class="card-header">
+                        <div>
+                            <h3>🏫</h3>
+                            <p>Relatório de Turmas</p>
+                        </div>
+                        <div class="card-icon orange">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card" onclick="gerarRelatorio('sustentabilidade')" style="cursor: pointer;">
+                    <div class="card-header">
+                        <div>
+                            <h3>🌱</h3>
+                            <p>Relatório de Sustentabilidade</p>
+                        </div>
+                        <div class="card-icon purple">
+                            <i class="fas fa-leaf"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>Relatórios Rápidos</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="relatorio-tipo">Tipo de Relatório</label>
+                        <select id="relatorio-tipo">
+                            <option value="alunos_por_turma">Alunos por Turma</option>
+                            <option value="professores_ativos">Professores Ativos</option>
+                            <option value="turmas_lotadas">Turmas Lotadas</option>
+                            <option value="media_geral">Média Geral por Turma</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="relatorio-formato">Formato</label>
+                        <select id="relatorio-formato">
+                            <option value="tela">Visualizar na Tela</option>
+                            <option value="pdf">PDF</option>
+                            <option value="excel">Excel</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="gerarRelatorioCustomizado()">
+                    <i class="fas fa-download"></i> Gerar Relatório
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+async function gerarRelatorio(tipo) {
+    try {
+        showNotification(`Gerando relatório de ${tipo}...`, 'info');
+
+        // Simular geração de relatório
+        setTimeout(() => {
+            showNotification(`Relatório de ${tipo} gerado com sucesso!`, 'success');
+
+            // Aqui você implementaria a lógica real de geração de relatórios
+            const relatorioData = {
+                alunos: { total: 150, ativos: 142, inativos: 8 },
+                professores: { total: 25, ativos: 22, disponiveis: 3 },
+                turmas: { total: 15, lotadas: 8, com_vagas: 7 },
+                sustentabilidade: { papel_salvo: 1247, co2_evitado: 45.8 }
+            };
+
+            mostrarRelatorioNaTela(tipo, relatorioData[tipo]);
+        }, 2000);
+
+    } catch (error) {
+        showNotification('Erro ao gerar relatório: ' + error.message, 'error');
+    }
+}
+
+function mostrarRelatorioNaTela(tipo, dados) {
+    const modalContent = `
+        <div class="modal-header">
+            <h3>Relatório de ${tipo.charAt(0).toUpperCase() + tipo.slice(1)}</h3>
+            <button class="modal-close" onclick="closeModal('relatorio-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="relatorio-content">
+                <h4>Dados do Relatório</h4>
+                <pre>${JSON.stringify(dados, null, 2)}</pre>
+                
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="exportarRelatorio('pdf')">
+                        <i class="fas fa-file-pdf"></i> Exportar PDF
+                    </button>
+                    <button class="btn btn-success" onclick="exportarRelatorio('excel')">
+                        <i class="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeModal('relatorio-modal')">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    showCustomModal('relatorio-modal', modalContent);
+}
+
+// =============================================
+// CONFIGURAÇÕES 
+// =============================================
+
+async function loadConfiguracoesSection() {
+    return `
+        <div class="section">
+            <div class="section-header">
+                <h2>Configurações do Sistema</h2>
+            </div>
+            
+            <div class="config-grid">
+                <div class="config-card">
+                    <h4><i class="fas fa-school"></i> Configurações da Escola</h4>
+                    <div class="config-content">
+                        <div class="form-group">
+                            <label for="escola-nome">Nome da Escola</label>
+                            <input type="text" id="escola-nome" value="Escola Municipal Exemplo" placeholder="Nome da instituição">
+                        </div>
+                        <div class="form-group">
+                            <label for="escola-ano-letivo">Ano Letivo Vigente</label>
+                            <input type="text" id="escola-ano-letivo" value="2025" placeholder="2025">
+                        </div>
+                        <button class="btn btn-primary" onclick="salvarConfigEscola()">
+                            <i class="fas fa-save"></i> Salvar Configurações
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="config-card">
+                    <h4><i class="fas fa-user-cog"></i> Configurações de Usuário</h4>
+                    <div class="config-content">
+                        <div class="form-group">
+                            <label for="usuario-tema">Tema do Sistema</label>
+                            <select id="usuario-tema">
+                                <option value="claro">Tema Claro</option>
+                                <option value="escuro">Tema Escuro</option>
+                                <option value="auto">Automático</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="usuario-idioma">Idioma</label>
+                            <select id="usuario-idioma">
+                                <option value="pt">Português</option>
+                                <option value="en">Inglês</option>
+                                <option value="es">Espanhol</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="salvarConfigUsuario()">
+                            <i class="fas fa-save"></i> Salvar Preferências
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="config-card">
+                    <h4><i class="fas fa-database"></i> Backup do Sistema</h4>
+                    <div class="config-content">
+                        <p>Realize backup dos dados do sistema para garantir a segurança das informações.</p>
+                        <button class="btn btn-warning" onclick="realizarBackup()">
+                            <i class="fas fa-download"></i> Realizar Backup
+                        </button>
+                        <button class="btn btn-info" onclick="restaurarBackup()">
+                            <i class="fas fa-upload"></i> Restaurar Backup
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="config-card">
+                    <h4><i class="fas fa-shield-alt"></i> Segurança</h4>
+                    <div class="config-content">
+                        <div class="form-group">
+                            <label for="seguranca-senha">Alterar Senha</label>
+                            <input type="password" id="seguranca-senha" placeholder="Nova senha">
+                        </div>
+                        <div class="form-group">
+                            <label for="seguranca-confirmacao">Confirmar Senha</label>
+                            <input type="password" id="seguranca-confirmacao" placeholder="Confirmar nova senha">
+                        </div>
+                        <button class="btn btn-primary" onclick="alterarSenha()">
+                            <i class="fas fa-key"></i> Alterar Senha
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function realizarBackup() {
+    try {
+        showNotification('Iniciando backup do sistema...', 'info');
+
+        // Simular backup
+        setTimeout(() => {
+            showNotification('Backup realizado com sucesso!', 'success');
+
+            // Criar link de download simulado
+            const blob = new Blob(['Dados de backup do sistema'], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup-sistema-${new Date().toISOString().split('T')[0]}.bak`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }, 3000);
+
+    } catch (error) {
+        showNotification('Erro ao realizar backup: ' + error.message, 'error');
+    }
 }
