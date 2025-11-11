@@ -84,7 +84,7 @@ async function loadTurmasSection() {
 }
 
 // =============================================
-// GERENCIAR PROFESSORES - ADMIN
+// GERENCIAR PROFESSORES - ADMIN (CORRIGIDO)
 // =============================================
 
 async function loadProfessoresSection() {
@@ -98,6 +98,23 @@ async function loadProfessoresSection() {
         }
 
         const data = await response.json();
+        const professores = data.professores || [];
+
+        // CORREÇÃO: Usar critério consistente para contagem
+        const totalProfessores = professores.length;
+        const professoresAtivos = professores.filter(p => (p.total_turmas || 0) > 0).length;
+        const professoresSemAlocacao = professores.filter(p => (p.total_turmas || 0) === 0).length;
+
+        console.log('📊 Estatísticas professores:', {
+            total: totalProfessores,
+            ativos: professoresAtivos,
+            semAlocacao: professoresSemAlocacao,
+            professores: professores.map(p => ({
+                nome: p.nome,
+                total_turmas: p.total_turmas,
+                materias_count: p.materias_count
+            }))
+        });
 
         return `
             <div class="section">
@@ -112,7 +129,7 @@ async function loadProfessoresSection() {
                     <div class="card">
                         <div class="card-header">
                             <div>
-                                <h3>${data.professores ? data.professores.length : 0}</h3>
+                                <h3>${totalProfessores}</h3>
                                 <p>Total de Professores</p>
                             </div>
                             <div class="card-icon blue">
@@ -124,24 +141,28 @@ async function loadProfessoresSection() {
                     <div class="card">
                         <div class="card-header">
                             <div>
-                                <h3>${data.professores ? data.professores.filter(p => p.materias_count > 0).length : 0}</h3>
+                                <h3>${professoresAtivos}</h3>
                                 <p>Professores Ativos</p>
                             </div>
                             <div class="card-icon green">
                                 <i class="fas fa-user-check"></i>
                             </div>
                         </div>
+                        <div class="card-footer">
+                        </div>
                     </div>
                     
                     <div class="card">
                         <div class="card-header">
                             <div>
-                                <h3>${data.professores ? data.professores.filter(p => !p.materias_count || p.materias_count === 0).length : 0}</h3>
+                                <h3>${professoresSemAlocacao}</h3>
                                 <p>Sem Alocação</p>
                             </div>
                             <div class="card-icon orange">
                                 <i class="fas fa-exclamation-circle"></i>
                             </div>
+                        </div>
+                        <div class="card-footer">
                         </div>
                     </div>
                 </div>
@@ -160,53 +181,59 @@ async function loadProfessoresSection() {
                             </tr>
                         </thead>
                         <tbody>
-    ${data.professores && data.professores.length > 0 ? data.professores.map(professor => `
-        <tr>
-            <td>
-                <div class="teacher-info">
-                    <strong>${professor.nome}</strong>
-                    ${professor.formacao ? `<br><small>${professor.formacao}</small>` : ''}
-                </div>
-            </td>
-            <td>${professor.email}</td>
-            <td>${professor.telefone || 'Não informado'}</td>
-            <td>
-                <span class="badge badge-info">
-                    ${professor.materias_lecionadas || 'Nenhuma'}
-                </span>
-            </td>
-            <td>
-                <span class="badge ${professor.total_turmas > 0 ? 'badge-success' : 'badge-secondary'}">
-                    ${professor.total_turmas || 0} turma(s)
-                </span>
-            </td>
-            <td>
-                <span class="badge ${professor.total_turmas > 0 ? 'badge-success' : 'badge-secondary'}">
-                    ${professor.total_turmas > 0 ? 'Ativo' : 'Inativo'}
-                </span>
-            </td>
-            <td>
-                <button class="btn btn-sm btn-info" onclick="viewProfessorDetails(${professor.id})" title="Ver detalhes">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn btn-sm btn-warning" onclick="editProfessor(${professor.id})" title="Editar">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-sm btn-success" onclick="openAlocarProfessorModal(${professor.id})" title="Alocar em turma">
-                    <i class="fas fa-link"></i>
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteProfessor(${professor.id})" 
-                        ${professor.total_turmas > 0 ? 'disabled title="Não é possível excluir professor com turmas"' : 'title="Excluir professor"'}>
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        </tr>
-    `).join('') : `
-        <tr>
-            <td colspan="7" class="text-center">Nenhum professor encontrado</td>
-        </tr>
-    `}
-</tbody>
+                            ${professores.length > 0 ? professores.map(professor => {
+            const totalTurmas = professor.total_turmas || 0;
+            const isAtivo = totalTurmas > 0;
+            const materiasLeccionadas = professor.materias_lecionadas || 'Nenhuma';
+
+            return `
+                                <tr>
+                                    <td>
+                                        <div class="teacher-info">
+                                            <strong>${professor.nome}</strong>
+                                            ${professor.formacao ? `<br><small>${professor.formacao}</small>` : ''}
+                                        </div>
+                                    </td>
+                                    <td>${professor.email}</td>
+                                    <td>${professor.telefone || 'Não informado'}</td>
+                                    <td>
+                                        <span class="badge badge-info">
+                                            ${materiasLeccionadas}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge ${totalTurmas > 0 ? 'badge-success' : 'badge-secondary'}">
+                                            ${totalTurmas} turma(s)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge ${isAtivo ? 'badge-success' : 'badge-warning'}">
+                                            ${isAtivo ? 'Ativo' : 'Inativo'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="viewProfessorDetails(${professor.id})" title="Ver detalhes">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-warning" onclick="editProfessor(${professor.id})" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-success" onclick="openAlocarProfessorModal(${professor.id})" title="Alocar em turma">
+                                            <i class="fas fa-link"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteProfessor(${professor.id})" 
+                                                ${totalTurmas > 0 ? 'disabled title="Não é possível excluir professor com turmas"' : 'title="Excluir professor"'}>
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                `;
+        }).join('') : `
+                                <tr>
+                                    <td colspan="7" class="text-center">Nenhum professor encontrado</td>
+                                </tr>
+                            `}
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -1203,7 +1230,7 @@ async function viewAlunoDetails(alunoId) {
                 <h3>Detalhes do Aluno</h3>
                 <button class="modal-close" onclick="closeModal('view-aluno-modal')">&times;</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" width="50%">
                 <div class="student-details">
                     <div class="detail-section">
                         <h4>Informações Pessoais</h4>
@@ -2280,16 +2307,14 @@ async function viewProfessorDetails(professorId) {
                             <div class="detail-item">
                                 <strong>Telefone:</strong> ${professor.telefone || 'Não informado'}
                             </div>
-                            <div class="detail-item">
-                                <strong>Matéria Principal:</strong> ${professor.materia_principal || 'Não definida'}
-                            </div>
+                            
                             <div class="detail-item">
                                 <strong>Formação:</strong> ${professor.formacao || 'Não informada'}
                             </div>
                             <div class="detail-item">
                                 <strong>Status:</strong> 
-                                <span class="badge ${professor.ativo ? 'badge-success' : 'badge-warning'}">
-                                    ${professor.ativo ? 'Ativo' : 'Inativo'}
+                                <span class="badge ${professor.total_turmas ? 'badge-success' : 'badge-warning'}">
+                                    ${professor.total_turmas > 0 ? 'Ativo' : 'Inativo'}
                                 </span>
                             </div>
                         </div>
@@ -2311,7 +2336,7 @@ async function viewProfessorDetails(professorId) {
                 </div>
                 
                 <div class="form-actions">
-                    <button type="button" class="btn btn-primary" onclick="editarProfessor(${professorId})">
+                    <button type="button" class="btn btn-primary" onclick="editProfessor(${professorId})">
                         <i class="fas fa-edit"></i> Editar Professor
                     </button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal('view-professor-modal')">
@@ -2358,11 +2383,7 @@ async function removerProfessorTurma(turmaId, professorId, professorNome) {
 // FUNÇÃO AUXILIAR PARA EDIÇÃO DE PROFESSOR
 // =============================================
 
-async function editarProfessor(professorId) {
-    showNotification(`Abrindo edição do professor ID: ${professorId}`, 'info');
-    // Implementação similar à edição de aluno
-    // Esta função abriria um modal de edição para o professor
-}
+
 
 
 // Função para adicionar aluno à turma
@@ -3148,7 +3169,7 @@ async function loadRelatoriosSection() {
                         <label for="relatorio-tipo">Tipo de Relatório</label>
                         <select id="relatorio-tipo">
                             <option value="alunos_por_turma">Alunos por Turma</option>
-                            <option value="professores_ativos">Professores Ativos</option>
+                            <option value="professor.total_turmas">Professores Ativos</option>
                             <option value="turmas_lotadas">Turmas Lotadas</option>
                             <option value="media_geral">Média Geral por Turma</option>
                         </select>
@@ -3223,93 +3244,7 @@ function mostrarRelatorioNaTela(tipo, dados) {
     showCustomModal('relatorio-modal', modalContent);
 }
 
-// =============================================
-// CONFIGURAÇÕES 
-// =============================================
 
-async function loadConfiguracoesSection() {
-    return `
-        <div class="section">
-            <div class="section-header">
-                <h2>Configurações do Sistema</h2>
-            </div>
-            
-            <div class="config-grid">
-                <div class="config-card">
-                    <h4><i class="fas fa-school"></i> Configurações da Escola</h4>
-                    <div class="config-content">
-                        <div class="form-group">
-                            <label for="escola-nome">Nome da Escola</label>
-                            <input type="text" id="escola-nome" value="Escola Municipal Exemplo" placeholder="Nome da instituição">
-                        </div>
-                        <div class="form-group">
-                            <label for="escola-ano-letivo">Ano Letivo Vigente</label>
-                            <input type="text" id="escola-ano-letivo" value="2025" placeholder="2025">
-                        </div>
-                        <button class="btn btn-primary" onclick="salvarConfigEscola()">
-                            <i class="fas fa-save"></i> Salvar Configurações
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="config-card">
-                    <h4><i class="fas fa-user-cog"></i> Configurações de Usuário</h4>
-                    <div class="config-content">
-                        <div class="form-group">
-                            <label for="usuario-tema">Tema do Sistema</label>
-                            <select id="usuario-tema">
-                                <option value="claro">Tema Claro</option>
-                                <option value="escuro">Tema Escuro</option>
-                                <option value="auto">Automático</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="usuario-idioma">Idioma</label>
-                            <select id="usuario-idioma">
-                                <option value="pt">Português</option>
-                                <option value="en">Inglês</option>
-                                <option value="es">Espanhol</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-primary" onclick="salvarConfigUsuario()">
-                            <i class="fas fa-save"></i> Salvar Preferências
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="config-card">
-                    <h4><i class="fas fa-database"></i> Backup do Sistema</h4>
-                    <div class="config-content">
-                        <p>Realize backup dos dados do sistema para garantir a segurança das informações.</p>
-                        <button class="btn btn-warning" onclick="realizarBackup()">
-                            <i class="fas fa-download"></i> Realizar Backup
-                        </button>
-                        <button class="btn btn-info" onclick="restaurarBackup()">
-                            <i class="fas fa-upload"></i> Restaurar Backup
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="config-card">
-                    <h4><i class="fas fa-shield-alt"></i> Segurança</h4>
-                    <div class="config-content">
-                        <div class="form-group">
-                            <label for="seguranca-senha">Alterar Senha</label>
-                            <input type="password" id="seguranca-senha" placeholder="Nova senha">
-                        </div>
-                        <div class="form-group">
-                            <label for="seguranca-confirmacao">Confirmar Senha</label>
-                            <input type="password" id="seguranca-confirmacao" placeholder="Confirmar nova senha">
-                        </div>
-                        <button class="btn btn-primary" onclick="alterarSenha()">
-                            <i class="fas fa-key"></i> Alterar Senha
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
 
 async function realizarBackup() {
     try {

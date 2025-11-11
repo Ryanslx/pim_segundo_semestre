@@ -67,7 +67,6 @@ def admin_required(f):
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'sistema-academico-secret-key'
 
-# Configuração CORS completa
 CORS(app, origins=["http://127.0.0.1:5500", "http://localhost:5500", "http://localhost:8000", "http://127.0.0.1:8000"], 
      supports_credentials=True, 
      allow_headers=["Content-Type", "Authorization", "Accept"],
@@ -211,6 +210,8 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES usuarios (id)
             )
         ''')
+
+        
         
         # Verificar se já existem usuários
         existing_users = db.execute('SELECT COUNT(*) as count FROM usuarios').fetchone()['count']
@@ -635,7 +636,7 @@ def get_admin_dashboard():
         ''').fetchall()
         
         # Professores mais ativos
-        professores_ativos = db.execute('''
+        professor.total_turmas = db.execute('''
             SELECT u.nome, COUNT(m.id) as total_materias
             FROM usuarios u
             LEFT JOIN materias m ON u.id = m.professor_id
@@ -653,7 +654,7 @@ def get_admin_dashboard():
                 'total_atividades': total_atividades
             },
             'turmas_capacidade': [dict(turma) for turma in turmas_capacidade],
-            'professores_ativos': [dict(prof) for prof in professores_ativos]
+            'professor.total_turmas': [dict(prof) for prof in professor.total_turmas]
         })
         
     except Exception as e:
@@ -787,6 +788,7 @@ def get_professores_turma(turma_id):
         return success_response('Professores da turma carregados', {
             'professores': []
         })
+
 
 # =============================================
 # ROTAS DE ALUNOS (COMPLETO)
@@ -1305,12 +1307,15 @@ def manage_professores():
     elif request.method == 'POST':
         return create_professor()
 
+@app.route('/api/admin/professores', methods=['GET'])
 def get_professores():
     try:
         db = get_db()
         professores = db.execute('''
-            SELECT u.*, COUNT(m.id) as total_turmas,
-                   GROUP_CONCAT(DISTINCT m.nome) as materias_lecionadas
+            SELECT 
+                u.*, 
+                COUNT(DISTINCT m.id) as total_turmas,
+                GROUP_CONCAT(DISTINCT m.nome) as materias_lecionadas
             FROM usuarios u
             LEFT JOIN materias m ON u.id = m.professor_id
             WHERE u.tipo = 'professor'

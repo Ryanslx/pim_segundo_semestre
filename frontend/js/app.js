@@ -134,7 +134,6 @@ function loadMenu() {
                 { icon: 'fas fa-user-graduate', text: 'Gerenciar Alunos', section: 'alunos' },
                 { icon: 'fas fa-chalkboard-teacher', text: 'Gerenciar Professores', section: 'professores' },
                 { icon: 'fas fa-chart-bar', text: 'Relatórios', section: 'relatorios' },
-                { icon: 'fas fa-cog', text: 'Configurações', section: 'configuracoes' }
             ];
             break;
 
@@ -421,12 +420,7 @@ async function showSection(section) {
                 }
                 break;
 
-            case 'configuracoes':
-                if (currentUser.tipo === 'admin') {
-                    sectionTitle.textContent = 'Configurações do Sistema';
-                    content = await loadConfiguracoesSection();
-                }
-                break;
+
 
             default:
                 sectionTitle.textContent = 'Seção em Desenvolvimento';
@@ -584,6 +578,7 @@ function loadMenu() {
     let menuItems = [];
 
     switch (currentUser.tipo) {
+        // No caso 'admin' do loadMenu(), adicionar:
         case 'admin':
             menuItems = [
                 { icon: 'fas fa-home', text: 'Dashboard', section: 'dashboard' },
@@ -592,7 +587,6 @@ function loadMenu() {
                 { icon: 'fas fa-chalkboard-teacher', text: 'Gerenciar Professores', section: 'professores' },
                 { icon: 'fas fa-book', text: 'Gerenciar Matérias', section: 'materias' }, // NOVO
                 { icon: 'fas fa-chart-bar', text: 'Relatórios', section: 'relatorios' }, // NOVO
-                { icon: 'fas fa-cog', text: 'Configurações', section: 'configuracoes' } // NOVO
             ];
             break;
 

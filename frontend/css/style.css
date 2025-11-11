@@ -558,10 +558,10 @@ tr:hover {
     background: white;
     padding: 30px;
     border-radius: 15px;
-    width: 85%;
+    width: 75%;
     max-width: 100%;
     max-height: 90%;
-    overflow-y: auto;
+    overflow-y: hidden;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 
