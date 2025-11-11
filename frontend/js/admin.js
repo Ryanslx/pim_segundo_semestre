@@ -1567,8 +1567,8 @@ async function getTurmaMockData(turmaId) {
     return turmasMock[turmaId] || {
         id: turmaId,
         nome: `Turma ${turmaId}`,
-        codigo: `T${turmaId}2024`,
-        ano_letivo: "2024",
+        codigo: `T${turmaId}2025`,
+        ano_letivo: "2025",
         periodo: "manhã",
         capacidade_max: 90,
         alunos_matriculados: 0,
@@ -2752,7 +2752,7 @@ function openCreateTurmaModal() {
             </div>
             <div class="form-group">
                 <label for="turma-ano">Ano Letivo *</label>
-                <input type="text" id="turma-ano" value="2024" required>
+                <input type="text" id="turma-ano" value="2025" required>
             </div>
             <div class="form-group">
                 <label for="turma-periodo">Período *</label>
