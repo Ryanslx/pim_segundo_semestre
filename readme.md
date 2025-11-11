@@ -19,7 +19,10 @@ Sistema completo de gestão acadêmica com backend em Python/Flask, frontend em 
 ### 👨‍💼 Perfil Administrador
 - Gestão completa de turmas (criar/remover)
 - Controle de capacidade (30-90 alunos)
+<<<<<<< HEAD
 - Dias de aula
+=======
+>>>>>>> origin/admin
 - Alocação de professores
 - Relatórios e analytics
 

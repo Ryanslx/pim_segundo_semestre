@@ -188,6 +188,7 @@ async function loadInitialDashboard() {
 
         switch (currentUser.tipo) {
             case 'admin':
+<<<<<<< HEAD
                 dashboardContent = await loadAdminDashboard();
                 break;
             case 'professor':
@@ -195,6 +196,15 @@ async function loadInitialDashboard() {
                 break;
             case 'aluno':
                 dashboardContent = await loadAlunoDashboard();
+=======
+                dashboardContent = await loadAdminDashboardContent();
+                break;
+            case 'professor':
+                dashboardContent = await loadProfessorDashboardContent();
+                break;
+            case 'aluno':
+                dashboardContent = await loadAlunoDashboardContent();
+>>>>>>> origin/admin
                 break;
             default:
                 dashboardContent = '<div class="section"><h3>Tipo de usuário não reconhecido</h3></div>';
@@ -212,8 +222,13 @@ async function loadInitialDashboard() {
     }
 }
 
+<<<<<<< HEAD
 // Dashboard do Admin
 async function loadAdminDashboard() {
+=======
+// Dashboard do Admin (função renomeada para evitar conflito)
+async function loadAdminDashboardContent() {
+>>>>>>> origin/admin
     try {
         const [turmasRes, alunosRes, professoresRes] = await Promise.all([
             fetch(`${API_BASE}/admin/turmas`, { headers: getAuthHeaders() }),
@@ -337,7 +352,10 @@ async function loadSustainabilityMetrics() {
 }
 
 // Navegação entre seções
+<<<<<<< HEAD
 // Navegação entre seções
+=======
+>>>>>>> origin/admin
 async function showSection(section) {
     // Atualizar menu ativo
     document.querySelectorAll('.menu-item').forEach(item => {
@@ -400,6 +418,16 @@ async function showSection(section) {
                 }
                 break;
 
+<<<<<<< HEAD
+=======
+            case 'professores':
+                if (currentUser.tipo === 'admin') {
+                    sectionTitle.textContent = 'Gerenciar Professores';
+                    content = await loadProfessoresSection();
+                }
+                break;
+
+>>>>>>> origin/admin
             default:
                 sectionTitle.textContent = 'Seção em Desenvolvimento';
                 content = `
@@ -430,6 +458,7 @@ async function loadDashboardContent() {
 
         switch (currentUser.tipo) {
             case 'admin':
+<<<<<<< HEAD
                 dashboardContent = await loadAdminDashboard();
                 break;
             case 'professor':
@@ -437,6 +466,15 @@ async function loadDashboardContent() {
                 break;
             case 'aluno':
                 dashboardContent = await loadAlunoDashboard();
+=======
+                dashboardContent = await loadAdminDashboardContent();
+                break;
+            case 'professor':
+                dashboardContent = await loadProfessorDashboardContent();
+                break;
+            case 'aluno':
+                dashboardContent = await loadAlunoDashboardContent();
+>>>>>>> origin/admin
                 break;
             default:
                 dashboardContent = '<div class="section"><p>Tipo de usuário não reconhecido</p></div>';
@@ -454,6 +492,7 @@ async function loadDashboardContent() {
     }
 }
 
+<<<<<<< HEAD
 // Renomear a função antiga para evitar conflito
 async function loadAdminDashboard() {
     try {
@@ -571,6 +610,10 @@ async function loadAdminDashboard() {
 
 // Dashboard do Professor (simplificado)
 async function loadProfessorDashboard() {
+=======
+// Dashboard do Professor (função renomeada)
+async function loadProfessorDashboardContent() {
+>>>>>>> origin/admin
     return `
         <div class="dashboard">
             <div class="card">
@@ -617,8 +660,13 @@ async function loadProfessorDashboard() {
     `;
 }
 
+<<<<<<< HEAD
 // Dashboard do Aluno (simplificado)
 async function loadAlunoDashboard() {
+=======
+// Dashboard do Aluno (função renomeada)
+async function loadAlunoDashboardContent() {
+>>>>>>> origin/admin
     return `
         <div class="dashboard">
             <div class="card">
@@ -716,6 +764,7 @@ function loadMenu() {
     }
 }
 
+<<<<<<< HEAD
 // Headers de autenticação
 function getAuthHeaders() {
     if (!currentToken) {
@@ -729,6 +778,19 @@ function getAuthHeaders() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${currentToken}`
     };
+=======
+// Headers de autenticação melhorados
+function getAuthHeaders() {
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+
+    if (currentToken) {
+        headers['Authorization'] = `Bearer ${currentToken}`;
+    }
+
+    return headers;
+>>>>>>> origin/admin
 }
 
 // Logout
@@ -912,6 +974,7 @@ async function loadAtividadesAluno() {
     `;
 }
 
+<<<<<<< HEAD
 async function loadProfessorDashboard() {
     return `
         <div class="section">
@@ -930,6 +993,8 @@ async function loadAlunoDashboard() {
     `;
 }
 
+=======
+>>>>>>> origin/admin
 // Tratamento de erro global
 window.addEventListener('error', function (e) {
     console.error('Erro global:', e.error);
@@ -937,7 +1002,11 @@ window.addEventListener('error', function (e) {
 
 // Verificar se todas as funções necessárias existem
 function checkFunctions() {
+<<<<<<< HEAD
     const requiredFunctions = ['showSection', 'loadDashboardContent', 'loadAdminDashboard'];
+=======
+    const requiredFunctions = ['showSection', 'loadDashboardContent', 'loadAdminDashboardContent'];
+>>>>>>> origin/admin
     requiredFunctions.forEach(func => {
         if (typeof window[func] === 'undefined') {
             console.error(`Função ${func} não está definida!`);

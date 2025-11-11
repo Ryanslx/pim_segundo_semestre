@@ -149,6 +149,7 @@ def relatorio_desempenho():
         'alunos': alunos_ordenados,
         'total_alunos': len(alunos_ordenados),
         'media_geral': sum(aluno.get('media', 0) for aluno in alunos_ordenados) / len(alunos_ordenados) if alunos_ordenados else 0
+<<<<<<< HEAD
     })
 
 # ... código existente ...
@@ -399,4 +400,6 @@ def get_materias_professor(professor_id):
     
     return jsonify({
         'materias': [dict(materia) for materia in materias]
+=======
+>>>>>>> origin/admin
     })
