@@ -1825,42 +1825,222 @@ def get_minhas_notas():
         })
     except Exception as e:
         return error_response(str(e))
+# =============================================
+# ROTAS DO CALENDÁRIO DO ALUNO
+# =============================================
 
-@app.route('/api/aluno/calendario-aulas', methods=['GET'])
-def get_calendario_aulas():
+@app.route('/api/aluno/calendario', methods=['GET'])
+@token_required
+def get_calendario_aluno():
     try:
-        from datetime import datetime, timedelta
+        db = get_db()
         
-        # Gerar datas da próxima semana
-        hoje = datetime.now()
-        dias_semana = []
+        # Buscar aluno pelo usuário logado
+        aluno = db.execute('''
+            SELECT a.id, a.turma_id 
+            FROM alunos a 
+            WHERE a.usuario_id = ?
+        ''', (request.user_id,)).fetchone()
         
-        for i in range(7):
-            data = hoje + timedelta(days=i)
-            dias_semana.append(data.strftime('%Y-%m-%d'))
+        if not aluno:
+            return error_response('Aluno não encontrado', 404)
         
-        aulas_mock = [
-            {
-                'id': 1,
-                'materia': 'Matemática',
-                'horario': '08:00 - 09:30',
-                'dia_semana': 'segunda',
-                'professor': 'Prof. Carlos Silva',
-                'sala': 'Sala 101',
-                'data': dias_semana[0],
-                'tipo': 'aula',
-                'cor': '#3498db'
-            }
-        ]
+        # Buscar aulas do aluno
+        aulas = db.execute('''
+            SELECT 
+                m.nome as materia,
+                m.horario,
+                m.dia_semana,
+                u.nome as professor,
+                t.nome as turma,
+                'aula' as tipo,
+                '#3498db' as cor,
+                NULL as data_especifica
+            FROM materias m
+            JOIN turmas t ON m.turma_id = t.id
+            JOIN usuarios u ON m.professor_id = u.id
+            WHERE m.turma_id = ?
+            ORDER BY 
+                CASE m.dia_semana 
+                    WHEN 'segunda' THEN 1
+                    WHEN 'terça' THEN 2
+                    WHEN 'quarta' THEN 3
+                    WHEN 'quinta' THEN 4
+                    WHEN 'sexta' THEN 5
+                    WHEN 'sábado' THEN 6
+                    WHEN 'domingo' THEN 7
+                    ELSE 8
+                END,
+                m.horario
+        ''', (aluno['turma_id'],)).fetchall()
+        
+        # Buscar atividades pendentes do aluno
+        atividades = db.execute('''
+            SELECT 
+                a.titulo,
+                a.data_entrega as data_especifica,
+                m.nome as materia,
+                a.valor,
+                'atividade' as tipo,
+                '#e74c3c' as cor,
+                NULL as horario,
+                NULL as dia_semana,
+                u.nome as professor,
+                t.nome as turma
+            FROM atividades a
+            JOIN materias m ON a.materia_id = m.id
+            JOIN turmas t ON m.turma_id = t.id
+            JOIN usuarios u ON a.criado_por = u.id
+            WHERE t.id = ?
+            ORDER BY a.data_entrega
+        ''', (aluno['turma_id'],)).fetchall()
+        
+        # Buscar provas/avaliações
+        provas = db.execute('''
+            SELECT 
+                a.titulo,
+                a.data_entrega as data_especifica,
+                m.nome as materia,
+                a.valor,
+                'prova' as tipo,
+                '#f39c12' as cor,
+                NULL as horario,
+                NULL as dia_semana,
+                u.nome as professor,
+                t.nome as turma
+            FROM atividades a
+            JOIN materias m ON a.materia_id = m.id
+            JOIN turmas t ON m.turma_id = t.id
+            JOIN usuarios u ON a.criado_por = u.id
+            WHERE t.id = ? AND (a.titulo LIKE '%prova%' OR a.titulo LIKE '%avaliação%')
+            ORDER BY a.data_entrega
+        ''', (aluno['turma_id'],)).fetchall()
+        
+        # Combinar todos os eventos
+        eventos = []
+        
+        # Adicionar aulas recorrentes
+        for aula in aulas:
+            eventos.append(dict(aula))
+        
+        # Adicionar atividades
+        for atividade in atividades:
+            eventos.append(dict(atividade))
+        
+        # Adicionar provas
+        for prova in provas:
+            eventos.append(dict(prova))
         
         return success_response('Calendário carregado', {
-            'dias_aula': aulas_mock,
-            'total_aulas': len(aulas_mock)
+            'eventos': eventos,
+            'total_eventos': len(eventos)
         })
         
     except Exception as e:
+        print(f'Erro ao carregar calendário: {e}')
         return error_response(str(e))
 
+@app.route('/api/aluno/calendario/semana', methods=['GET'])
+@token_required
+def get_calendario_semana():
+    try:
+        data_inicio = request.args.get('data_inicio')
+        if not data_inicio:
+            # Usar segunda-feira da semana atual como padrão
+            from datetime import datetime, timedelta
+            hoje = datetime.now()
+            data_inicio = (hoje - timedelta(days=hoje.weekday())).strftime('%Y-%m-%d')
+        
+        db = get_db()
+        
+        # Buscar aluno
+        aluno = db.execute('''
+            SELECT a.id, a.turma_id 
+            FROM alunos a 
+            WHERE a.usuario_id = ?
+        ''', (request.user_id,)).fetchone()
+        
+        if not aluno:
+            return error_response('Aluno não encontrado', 404)
+        
+        # Gerar datas da semana
+        from datetime import datetime, timedelta
+        data_base = datetime.strptime(data_inicio, '%Y-%m-%d')
+        dias_semana = []
+        
+        for i in range(7):
+            data = data_base + timedelta(days=i)
+            dias_semana.append({
+                'data': data.strftime('%Y-%m-%d'),
+                'dia_semana': data.strftime('%A').lower(),
+                'dia_mes': data.day,
+                'mes': data.strftime('%B'),
+                'nome_dia': data.strftime('%A')
+            })
+        
+        # Buscar eventos da semana
+        eventos_semana = []
+        
+        for dia in dias_semana:
+            # Aulas do dia
+            aulas_dia = db.execute('''
+                SELECT 
+                    m.nome as materia,
+                    m.horario,
+                    u.nome as professor,
+                    t.nome as turma,
+                    'aula' as tipo,
+                    '#3498db' as cor
+                FROM materias m
+                JOIN turmas t ON m.turma_id = t.id
+                JOIN usuarios u ON m.professor_id = u.id
+                WHERE m.turma_id = ? AND m.dia_semana = ?
+                ORDER BY m.horario
+            ''', (aluno['turma_id'], dia['dia_semana'])).fetchall()
+            
+            # Atividades do dia
+            atividades_dia = db.execute('''
+                SELECT 
+                    a.titulo as materia,
+                    a.data_entrega,
+                    a.valor,
+                    'atividade' as tipo,
+                    '#e74c3c' as cor,
+                    u.nome as professor
+                FROM atividades a
+                JOIN materias m ON a.materia_id = m.id
+                JOIN usuarios u ON a.criado_por = u.id
+                WHERE m.turma_id = ? AND a.data_entrega = ?
+                ORDER BY a.data_entrega
+            ''', (aluno['turma_id'], dia['data'])).fetchall()
+            
+            eventos_dia = []
+            
+            for aula in aulas_dia:
+                eventos_dia.append({
+                    **dict(aula),
+                    'data': dia['data']
+                })
+            
+            for atividade in atividades_dia:
+                eventos_dia.append({
+                    **dict(atividade),
+                    'data': dia['data']
+                })
+            
+            eventos_semana.append({
+                'dia': dia,
+                'eventos': eventos_dia
+            })
+        
+        return success_response('Calendário semanal carregado', {
+            'semana': eventos_semana,
+            'data_inicio': data_inicio
+        })
+        
+    except Exception as e:
+        print(f'Erro ao carregar calendário semanal: {e}')
+        return error_response(str(e))
 # =============================================
 # ROTAS GERAIS
 # =============================================

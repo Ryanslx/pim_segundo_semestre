@@ -390,7 +390,12 @@ async function showSection(section) {
                     content = await loadAtividadesAluno();
                 }
                 break;
-
+            case 'calendario-aluno':
+                if (currentUser.tipo === 'aluno') {
+                    sectionTitle.textContent = 'Meu Calendário';
+                    content = await loadCalendarioAluno();
+                }
+                break;
             case 'minhas-turmas':
                 if (currentUser.tipo === 'professor') {
                     sectionTitle.textContent = 'Minhas Turmas';
@@ -525,51 +530,326 @@ async function loadProfessorDashboardContent() {
 }
 
 // Dashboard do Aluno (função renomeada)
+// Dashboard do Aluno (versão atualizada e completa)
 async function loadAlunoDashboardContent() {
-    return `
-        <div class="dashboard">
-            <div class="card">
-                <div class="card-header">
-                    <div>
-                        <h3>8.5</h3>
-                        <p>Média Geral</p>
+    try {
+        // Buscar dados reais do aluno
+        const [notasRes, atividadesRes, calendarioRes] = await Promise.all([
+            fetch(`${API_BASE}/aluno/minhas-notas`, { headers: getAuthHeaders() }),
+            fetch(`${API_BASE}/aluno/atividades-pendentes`, { headers: getAuthHeaders() }),
+            fetch(`${API_BASE}/aluno/calendario`, { headers: getAuthHeaders() })
+        ]);
+
+        const notasData = notasRes.ok ? await notasRes.json() : { notas: [], media_geral: 0 };
+        const atividadesData = atividadesRes.ok ? await atividadesRes.json() : { atividades: [] };
+        const calendarioData = calendarioRes.ok ? await calendarioRes.json() : { eventos: [] };
+
+        const atividades = atividadesData.atividades || [];
+        const notas = notasData.notas || [];
+        const eventos = calendarioData.eventos || [];
+
+        // Calcular estatísticas
+        const atividadesPendentes = atividades.filter(a => !a.entregue);
+        const atividadesEntregues = atividades.filter(a => a.entregue);
+        const atividadesAtrasadas = atividades.filter(a => !a.entregue && new Date(a.data_entrega) < new Date());
+        const proximasAtividades = atividadesPendentes.slice(0, 3);
+        const eventosProximos = eventos
+            .filter(e => e.data_especifica ? new Date(e.data_especifica) >= new Date() : true)
+            .slice(0, 5);
+
+        return `
+            <div class="dashboard">
+                <!-- Cards de Estatísticas -->
+                <div class="stats-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>${notasData.media_geral ? notasData.media_geral.toFixed(1) : '0.0'}</h3>
+                                <p>Média Geral</p>
+                            </div>
+                            <div class="card-icon blue">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <small>Baseado em ${notas.length} avaliações</small>
+                        </div>
                     </div>
-                    <div class="card-icon blue">
-                        <i class="fas fa-chart-line"></i>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>${atividadesPendentes.length}</h3>
+                                <p>Pendentes</p>
+                            </div>
+                            <div class="card-icon orange">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <small>${atividadesAtrasadas.length} atrasadas</small>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>${atividadesEntregues.length}</h3>
+                                <p>Entregues</p>
+                            </div>
+                            <div class="card-icon green">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <small>${atividades.length} no total</small>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>${calcularFrequencia(notas)}%</h3>
+                                <p>Frequência</p>
+                            </div>
+                            <div class="card-icon purple">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <small>Taxa de participação</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Linha com Gráficos e Atividades -->
+                <div class="dashboard-row">
+                    <!-- Atividades Recentes -->
+                    <div class="dashboard-col">
+                        <div class="section">
+                            <div class="section-header">
+                                <h2>Atividades Recentes</h2>
+                                <button class="btn btn-sm btn-primary" onclick="showSection('atividades-aluno')">
+                                    Ver Todas
+                                </button>
+                            </div>
+                            <div class="atividades-recentes">
+                                ${atividades.length > 0 ? atividades.slice(0, 5).map(atividade => `
+                                    <div class="atividade-dash-item ${atividade.entregue ? 'entregue' : 'pendente'} ${isAtrasada(atividade.data_entrega, atividade.entregue) ? 'atrasada' : ''}">
+                                        <div class="atividade-icon">
+                                            <i class="fas ${getAtividadeIcon(atividade.titulo)}"></i>
+                                        </div>
+                                        <div class="atividade-info">
+                                            <div class="atividade-titulo">${atividade.titulo}</div>
+                                            <div class="atividade-detalhes">
+                                                <span class="materia">${atividade.materia_nome}</span>
+                                                <span class="data">${new Date(atividade.data_entrega).toLocaleDateString('pt-BR')}</span>
+                                            </div>
+                                        </div>
+                                        <div class="atividade-status">
+                                            <span class="badge ${atividade.entregue ? 'badge-success' : getStatusBadgeDash(atividade.data_entrega)}">
+                                                ${atividade.entregue ? 'Entregue' : getStatusTextoDash(atividade.data_entrega)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                `).join('') : `
+                                    <div class="empty-state-small">
+                                        <i class="fas fa-tasks"></i>
+                                        <p>Nenhuma atividade recente</p>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Próximos Eventos -->
+                    <div class="dashboard-col">
+                        <div class="section">
+                            <div class="section-header">
+                                <h2>Próximos Eventos</h2>
+                                <button class="btn btn-sm btn-primary" onclick="showSection('calendario-aluno')">
+                                    Ver Calendário
+                                </button>
+                            </div>
+                            <div class="eventos-proximos">
+                                ${eventosProximos.length > 0 ? eventosProximos.map(evento => `
+                                    <div class="evento-dash-item ${evento.tipo}">
+                                        <div class="evento-icon ${evento.tipo}">
+                                            <i class="fas ${getEventoIcon(evento.tipo)}"></i>
+                                        </div>
+                                        <div class="evento-info">
+                                            <div class="evento-titulo">${evento.materia}</div>
+                                            <div class="evento-detalhes">
+                                                ${evento.data_especifica ? 
+                                                    new Date(evento.data_especifica).toLocaleDateString('pt-BR') : 
+                                                    `${evento.dia_semana} ${evento.horario}`
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="evento-tipo ${evento.tipo}">
+                                            ${evento.tipo}
+                                        </div>
+                                    </div>
+                                `).join('') : `
+                                    <div class="empty-state-small">
+                                        <i class="fas fa-calendar"></i>
+                                        <p>Nenhum evento próximo</p>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Segunda Linha com Desempenho e Ações Rápidas -->
+                <div class="dashboard-row">
+                    <!-- Desempenho por Matéria -->
+                    <div class="dashboard-col">
+                        <div class="section">
+                            <div class="section-header">
+                                <h2>Desempenho por Matéria</h2>
+                                <button class="btn btn-sm btn-primary" onclick="showSection('minhas-notas')">
+                                    Ver Detalhes
+                                </button>
+                            </div>
+                            <div class="desempenho-materias">
+                                ${gerarGraficoDesempenho(notas)}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Ações Rápidas -->
+                    <div class="dashboard-col">
+                        <div class="section">
+                            <div class="section-header">
+                                <h2>Ações Rápidas</h2>
+                            </div>
+                            <div class="acoes-rapidas">
+                                <div class="acao-item" onclick="showSection('atividades-aluno')">
+                                    <div class="acao-icon">
+                                        <i class="fas fa-tasks"></i>
+                                    </div>
+                                    <div class="acao-info">
+                                        <h4>Ver Atividades</h4>
+                                        <p>${atividadesPendentes.length} pendentes</p>
+                                    </div>
+                                    <div class="acao-arrow">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="acao-item" onclick="showSection('minhas-notas')">
+                                    <div class="acao-icon">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                    <div class="acao-info">
+                                        <h4>Ver Notas</h4>
+                                        <p>${notas.length} avaliações</p>
+                                    </div>
+                                    <div class="acao-arrow">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="acao-item" onclick="showSection('calendario-aluno')">
+                                    <div class="acao-icon">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                    <div class="acao-info">
+                                        <h4>Ver Calendário</h4>
+                                        <p>${eventosProximos.length} eventos</p>
+                                    </div>
+                                    <div class="acao-arrow">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="acao-item" onclick="openFeedbackModal()">
+                                    <div class="acao-icon">
+                                        <i class="fas fa-comment"></i>
+                                    </div>
+                                    <div class="acao-info">
+                                        <h4>Enviar Feedback</h4>
+                                        <p>Ajude a melhorar o sistema</p>
+                                    </div>
+                                    <div class="acao-arrow">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Alertas e Notificações -->
+                ${gerarAlertas(atividadesAtrasadas, proximasAtividades)}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Erro no dashboard:', error);
+        return `
+            <div class="dashboard">
+                <div class="stats-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>0.0</h3>
+                                <p>Média Geral</p>
+                            </div>
+                            <div class="card-icon blue">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>0</h3>
+                                <p>Pendentes</p>
+                            </div>
+                            <div class="card-icon orange">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>0</h3>
+                                <p>Entregues</p>
+                            </div>
+                            <div class="card-icon green">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>85%</h3>
+                                <p>Frequência</p>
+                            </div>
+                            <div class="card-icon purple">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>Bem-vindo, Aluno!</h3>
+                    <p>Use o menu lateral para acessar as funcionalidades do sistema.</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Erro ao carregar dados completos do dashboard.</span>
                     </div>
                 </div>
             </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <div>
-                        <h3>3</h3>
-                        <p>Atividades Pendentes</p>
-                    </div>
-                    <div class="card-icon orange">
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <div>
-                        <h3>85%</h3>
-                        <p>Frequência</p>
-                    </div>
-                    <div class="card-icon green">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <h3>Bem-vindo, Aluno!</h3>
-            <p>Acesse suas notas, atividades e calendário pelo menu lateral.</p>
-        </div>
-    `;
+        `;
+    }
 }
 
 // Atualizar a função loadMenu para incluir onclick corretamente

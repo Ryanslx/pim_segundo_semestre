@@ -1484,4 +1484,882 @@ tr:hover {
 
 .info-box strong {
     color: var(--primary);
+}/* Calendário Mensal */
+.calendario-mensal {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.calendario-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.calendario-header h3 {
+    color: var(--primary);
+    margin: 0;
+}
+
+.calendario-navegacao {
+    display: flex;
+    gap: 10px;
+}
+
+.calendario-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.calendario-dia-header {
+    text-align: center;
+    font-weight: 600;
+    color: var(--gray);
+    padding: 10px;
+    font-size: 0.9rem;
+}
+
+.calendario-dia {
+    background: var(--light);
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 80px;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+}
+
+.calendario-dia.hoje {
+    border-color: var(--primary);
+    background: rgba(67, 97, 238, 0.05);
+}
+
+.calendario-dia.com-eventos {
+    background: rgba(52, 152, 219, 0.05);
+}
+
+.calendario-dia.vazio {
+    background: transparent;
+    border: none;
+}
+
+.dia-numero {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--dark);
+}
+
+.dia-eventos {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.evento-marcador {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    font-size: 0.7rem;
+}
+
+.evento-marcador.aula {
+    background: var(--primary);
+}
+
+.evento-marcador.atividade {
+    background: var(--warning);
+}
+
+.evento-marcador.prova {
+    background: var(--danger);
+}
+
+.evento-mais {
+    font-size: 0.7rem;
+    color: var(--gray);
+    text-align: center;
+}
+
+/* Horário Semanal */
+.horario-semanal {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    overflow-x: auto;
+}
+
+.semana-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.horario-grid {
+    display: grid;
+    grid-template-columns: 100px repeat(7, 1fr);
+    gap: 1px;
+    background: var(--light-gray);
+    border: 1px solid var(--light-gray);
+}
+
+.horario-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.horario-celula {
+    padding: 12px 8px;
+    background: white;
+    min-height: 60px;
+    border: none;
+}
+
+.horario-celula.header {
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.horario-celula.hora {
+    background: var(--light);
+    font-size: 0.8rem;
+    color: var(--gray);
+    text-align: center;
+    font-weight: 500;
+}
+
+.horario-celula.aula {
+    background: rgba(52, 152, 219, 0.1);
+    border-left: 3px solid var(--primary);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.horario-celula.aula:hover {
+    background: rgba(52, 152, 219, 0.2);
+    transform: scale(1.02);
+}
+
+.aula-info {
+    font-size: 0.8rem;
+}
+
+.aula-info strong {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--dark);
+}
+
+.aula-info small {
+    color: var(--gray);
+}
+
+/* Lista de Eventos */
+.eventos-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.evento-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary);
+    transition: all 0.3s;
+}
+
+.evento-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.evento-item.atividade {
+    border-left-color: var(--warning);
+}
+
+.evento-item.prova {
+    border-left-color: var(--danger);
+}
+
+.evento-marcador {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+
+.evento-info {
+    flex: 1;
+}
+
+.evento-titulo {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--dark);
+}
+
+.evento-detalhes {
+    font-size: 0.9rem;
+    color: var(--gray);
+    margin-bottom: 5px;
+}
+
+.evento-tipo {
+    font-size: 0.8rem;
+    color: white;
+    background: var(--primary);
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+.evento-item.atividade .evento-tipo {
+    background: var(--warning);
+}
+
+.evento-item.prova .evento-tipo {
+    background: var(--danger);
+}
+
+/* Botões de ação */
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+}
+
+.btn-outline:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .calendario-grid {
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+        font-size: 0.8rem;
+    }
+    
+    .calendario-dia {
+        min-height: 60px;
+        padding: 5px;
+    }
+    
+    .horario-grid {
+        grid-template-columns: 80px repeat(7, 120px);
+        font-size: 0.8rem;
+    }
+    
+    .horario-celula {
+        padding: 8px 4px;
+        min-height: 50px;
+    }
+    
+    .semana-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+}/* Barra de Pesquisa e Filtros */
+.search-container {
+    position: relative;
+    width: 425px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 40px 10px 15px;
+    border: 2px solid var(--light-gray);
+    border-radius: 25px;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    background: white;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.search-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray);
+}
+
+.filtros-rapidos {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: var(--light);
+    border-radius: 8px;
+}
+
+.filtro-tags {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filtro-tag {
+    padding: 8px 16px;
+    background: white;
+    border: 2px solid var(--light-gray);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    user-select: none;
+}
+
+.filtro-tag:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.filtro-tag.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.filtro-contador {
+    font-size: 0.9rem;
+    color: var(--gray);
+    font-weight: 500;
+}
+
+/* Melhorias na tabela de atividades */
+.atividade-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.atividade-info small {
+    color: var(--gray);
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
+
+.data-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.data-info small {
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+
+.text-danger {
+    color: var(--danger) !important;
+}
+
+.text-warning {
+    color: var(--warning) !important;
+}
+
+.text-muted {
+    color: var(--gray) !important;
+}
+
+/* Estados da tabela */
+.sem-resultados {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.atividade-item {
+    transition: all 0.3s;
+}
+
+.atividade-item:hover {
+    background: rgba(67, 97, 238, 0.02) !important;
+}
+
+/* Badges de status adicionais */
+.badge-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #b8dae2;
+}
+
+.badge-danger {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f1b0b7;
+}
+
+/* Animações */
+.search-input {
+    animation: slideInRight 0.3s ease;
+}
+
+.filtro-tag {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .search-container {
+        width: 100%;
+        margin-bottom: 15px;
+    }
+    
+    .section-actions {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .filtros-rapidos {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .filtro-tags {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+    
+    .filtro-tag {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+}/* Dashboard Aluno - Layout */
+.dashboard-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    margin-bottom: 25px;
+}
+
+.dashboard-col {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+/* Cards com Footer */
+.card-footer {
+    padding-top: 15px;
+    border-top: 1px solid var(--light-gray);
+    margin-top: 15px;
+}
+
+.card-footer small {
+    color: var(--gray);
+    font-size: 0.8rem;
+}
+
+/* Atividades Recentes */
+.atividades-recentes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.atividade-dash-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: var(--light);
+    border-radius: 10px;
+    border-left: 4px solid var(--primary);
+    transition: all 0.3s;
+}
+
+.atividade-dash-item:hover {
+    transform: translateX(5px);
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.atividade-dash-item.atrasada {
+    border-left-color: var(--danger);
+    background: rgba(231, 76, 60, 0.05);
+}
+
+.atividade-dash-item.entregue {
+    border-left-color: var(--success);
+    background: rgba(46, 204, 113, 0.05);
+}
+
+.atividade-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.atividade-dash-item.atrasada .atividade-icon {
+    background: var(--danger);
+}
+
+.atividade-dash-item.entregue .atividade-icon {
+    background: var(--success);
+}
+
+.atividade-info {
+    flex: 1;
+}
+
+.atividade-titulo {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--dark);
+}
+
+.atividade-detalhes {
+    display: flex;
+    gap: 15px;
+    font-size: 0.8rem;
+    color: var(--gray);
+}
+
+.materia {
+    font-weight: 500;
+}
+
+.data {
+    color: var(--gray);
+}
+
+/* Eventos Próximos */
+.eventos-proximos {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.evento-dash-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid var(--light-gray);
+    transition: all 0.3s;
+}
+
+.evento-dash-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.evento-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.evento-icon.aula {
+    background: var(--primary);
+}
+
+.evento-icon.prova {
+    background: var(--danger);
+}
+
+.evento-icon.atividade {
+    background: var(--warning);
+}
+
+.evento-info {
+    flex: 1;
+}
+
+.evento-titulo {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--dark);
+}
+
+.evento-detalhes {
+    font-size: 0.8rem;
+    color: var(--gray);
+}
+
+.evento-tipo {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: white;
+}
+
+.evento-tipo.aula {
+    background: var(--primary);
+}
+
+.evento-tipo.prova {
+    background: var(--danger);
+}
+
+.evento-tipo.atividade {
+    background: var(--warning);
+}
+
+/* Gráfico de Desempenho */
+.grafico-desempenho {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.materia-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.materia-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.materia-nome {
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.materia-media {
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--light-gray);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.materia-stats {
+    text-align: right;
+}
+
+.materia-stats small {
+    color: var(--gray);
+    font-size: 0.7rem;
+}
+
+/* Ações Rápidas */
+.acoes-rapidas {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.acao-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: white;
+    border: 1px solid var(--light-gray);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.acao-item:hover {
+    transform: translateX(5px);
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.acao-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.acao-info {
+    flex: 1;
+}
+
+.acao-info h4 {
+    margin: 0 0 4px 0;
+    color: var(--dark);
+    font-size: 1rem;
+}
+
+.acao-info p {
+    margin: 0;
+    color: var(--gray);
+    font-size: 0.8rem;
+}
+
+.acao-arrow {
+    color: var(--gray);
+    transition: transform 0.3s;
+}
+
+.acao-item:hover .acao-arrow {
+    transform: translateX(3px);
+    color: var(--primary);
+}
+
+/* Alertas */
+.alert {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+.alert i {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.alert div {
+    flex: 1;
+}
+
+.alert strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.alert p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--gray);
+}
+
+.alert-success {
+    background: rgba(46, 204, 113, 0.1);
+    border: 1px solid rgba(46, 204, 113, 0.2);
+    color: #27ae60;
+}
+
+.alert-warning {
+    background: rgba(243, 156, 18, 0.1);
+    border: 1px solid rgba(243, 156, 18, 0.2);
+    color: #f39c12;
+}
+
+.alert-danger {
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+/* Estados Vazios */
+.empty-state-small {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--gray);
+}
+
+.empty-state-small i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #adb5bd;
+}
+
+.empty-state-small p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .dashboard-row {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .atividade-detalhes {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .acao-item {
+        padding: 12px;
+    }
+    
+    .acao-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
 }
