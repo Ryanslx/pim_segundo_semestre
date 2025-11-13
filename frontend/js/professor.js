@@ -11,7 +11,7 @@ class ProfessorManager {
     async loadProfessorDashboard() {
         try {
             console.log('🎯 Carregando dashboard do professor...', currentUser);
-            
+
             // ✅ VERIFICAR SE O USUÁRIO É PROFESSOR
             if (!currentUser || currentUser.tipo !== 'professor') {
                 console.error('❌ Usuário não é professor:', currentUser);
@@ -27,9 +27,9 @@ class ProfessorManager {
                 const turmasRes = await fetch(`${API_BASE}/professor/minhas-turmas`, {
                     headers: getAuthHeaders()
                 });
-                
+
                 console.log('📡 Resposta turmas:', turmasRes.status, turmasRes.statusText);
-                
+
                 if (turmasRes.ok) {
                     turmasData = await turmasRes.json();
                     console.log('📊 Turmas carregadas:', turmasData);
@@ -53,9 +53,9 @@ class ProfessorManager {
                 const atividadesRes = await fetch(`${API_BASE}/professor/atividades`, {
                     headers: getAuthHeaders()
                 });
-                
+
                 console.log('📡 Resposta atividades:', atividadesRes.status, atividadesRes.statusText);
-                
+
                 if (atividadesRes.ok) {
                     atividadesData = await atividadesRes.json();
                     console.log('📝 Atividades carregadas:', atividadesData);
@@ -199,7 +199,7 @@ class ProfessorManager {
     async loadTurmasSection() {
         try {
             console.log('Carregando seção de turmas...');
-            
+
             const response = await fetch(`${API_BASE}/professor/minhas-turmas`, {
                 headers: getAuthHeaders()
             });
@@ -218,7 +218,7 @@ class ProfessorManager {
                         <span class="badge badge-info">${data.turmas.length} turmas</span>
                     </div>
                     
-                    <div class="search-bar">
+                    <div class="search-container">
                         <input type="text" id="search-turmas" placeholder="Pesquisar turmas..." onkeyup="professorManager.filtrarTurmas()">
                         <button class="btn btn-primary" onclick="professorManager.filtrarTurmas()">
                             <i class="fas fa-search"></i> Pesquisar
@@ -226,9 +226,9 @@ class ProfessorManager {
                     </div>
 
                     <div class="turmas-grid" id="turmas-list">
-                        ${data.turmas.length > 0 ? 
-                            data.turmas.map(turma => this.createTurmaCard(turma)).join('') 
-                            : `
+                        ${data.turmas.length > 0 ?
+                    data.turmas.map(turma => this.createTurmaCard(turma)).join('')
+                    : `
                             <div class="empty-state-professor">
                                 <i class="fas fa-users fa-3x"></i>
                                 <h3>Nenhuma turma atribuída</h3>
@@ -250,7 +250,7 @@ class ProfessorManager {
     async loadAtividadesSection() {
         try {
             console.log('Carregando seção de atividades...');
-            
+
             const response = await fetch(`${API_BASE}/professor/atividades`, {
                 headers: getAuthHeaders()
             });
@@ -279,9 +279,9 @@ class ProfessorManager {
                     </div>
 
                     <div class="atividades-list" id="atividades-list">
-                        ${data.atividades && data.atividades.length > 0 ? 
-                            data.atividades.map(atividade => this.createAtividadeItem(atividade)).join('') 
-                            : `
+                        ${data.atividades && data.atividades.length > 0 ?
+                    data.atividades.map(atividade => this.createAtividadeItem(atividade)).join('')
+                    : `
                             <div class="empty-state-professor">
                                 <i class="fas fa-tasks fa-3x"></i>
                                 <h3>Nenhuma atividade criada</h3>
@@ -405,7 +405,7 @@ class ProfessorManager {
         const dataEntrega = new Date(atividade.data_entrega);
         const hoje = new Date();
         const diasRestantes = Math.ceil((dataEntrega - hoje) / (1000 * 60 * 60 * 24));
-        
+
         let statusBadge = '';
         if (diasRestantes < 0) {
             statusBadge = '<span class="badge badge-danger">Expirada</span>';
@@ -451,7 +451,7 @@ class ProfessorManager {
     async viewTurmaAlunos(turmaId) {
         try {
             console.log('Carregando alunos da turma:', turmaId);
-            
+
             const response = await fetch(`${API_BASE}/professor/turma/${turmaId}/alunos`, {
                 headers: getAuthHeaders()
             });
@@ -510,7 +510,7 @@ class ProfessorManager {
     async showCriarAtividadeModal(turmaId = null) {
         try {
             console.log('Abrindo modal de criar atividade para turma:', turmaId);
-            
+
             // Carregar turmas do professor
             const response = await fetch(`${API_BASE}/professor/minhas-turmas`, {
                 headers: getAuthHeaders()
@@ -569,7 +569,7 @@ class ProfessorManager {
             `;
 
             this.showCustomModal('criar-atividade-modal', modalContent);
-            
+
             // Configurar submit do formulário
             document.getElementById('form-criar-atividade').addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -587,7 +587,7 @@ class ProfessorManager {
     filtrarTurmas() {
         const searchTerm = document.getElementById('search-turmas').value.toLowerCase();
         const turmas = document.querySelectorAll('.turma-card');
-        
+
         turmas.forEach(turma => {
             const text = turma.textContent.toLowerCase();
             turma.style.display = text.includes(searchTerm) ? 'block' : 'none';
@@ -597,7 +597,7 @@ class ProfessorManager {
     filtrarAlunos() {
         const searchTerm = document.getElementById('search-alunos').value.toLowerCase();
         const alunos = document.querySelectorAll('.aluno-row');
-        
+
         alunos.forEach(aluno => {
             const text = aluno.textContent.toLowerCase();
             aluno.style.display = text.includes(searchTerm) ? 'flex' : 'none';
@@ -607,7 +607,7 @@ class ProfessorManager {
     filtrarAtividades() {
         const searchTerm = document.getElementById('search-atividades').value.toLowerCase();
         const atividades = document.querySelectorAll('.atividade-item');
-        
+
         atividades.forEach(atividade => {
             const text = atividade.textContent.toLowerCase();
             atividade.style.display = text.includes(searchTerm) ? 'block' : 'none';

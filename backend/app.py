@@ -211,8 +211,6 @@ def init_db():
             )
         ''')
 
-        
-        
         # Verificar se já existem usuários
         existing_users = db.execute('SELECT COUNT(*) as count FROM usuarios').fetchone()['count']
         
@@ -288,7 +286,6 @@ def success_response(message, data=None):
     if data:
         response.update(data)
     return jsonify(response)
-
 
 # =============================================
 # SERVIÇO DE FRONTEND
@@ -612,8 +609,6 @@ def desalocar_professor(professor_id, materia_id):
 # RELATÓRIOS E DASHBOARD
 # =============================================
 
-
-
 @app.route('/api/admin/dashboard', methods=['GET'])
 @token_required
 @admin_required
@@ -636,7 +631,7 @@ def get_admin_dashboard():
         ''').fetchall()
         
         # Professores mais ativos
-        professor . total_turmas = banco de dados . executar ( ''
+        professores_ativos = db.execute('''
             SELECT u.nome, COUNT(m.id) as total_materias
             FROM usuarios u
             LEFT JOIN materias m ON u.id = m.professor_id
@@ -654,7 +649,7 @@ def get_admin_dashboard():
                 'total_atividades': total_atividades
             },
             'turmas_capacidade': [dict(turma) for turma in turmas_capacidade],
-            ' professor.total_turmas ': [dict(prof) para prof em professor.total_turmas ]
+            'professores_ativos': [dict(prof) for prof in professores_ativos]
         })
         
     except Exception as e:
@@ -1307,7 +1302,6 @@ def manage_professores():
     elif request.method == 'POST':
         return create_professor()
 
-@app.route('/api/admin/professores', methods=['GET'])
 def get_professores():
     try:
         db = get_db()
@@ -1482,6 +1476,73 @@ def delete_professor(professor_id):
 # SISTEMA DE ALOCAÇÃO DE PROFESSORES
 # =============================================
 
+# =============================================
+# ROTAS DO PROFESSOR
+# =============================================
+
+@app.route('/api/professor/minhas-turmas', methods=['GET'])
+@token_required
+def get_minhas_turmas():
+    try:
+        if request.user_type != 'professor':
+            return error_response('Acesso restrito a professores', 403)
+        
+        db = get_db()
+        
+        # Buscar turmas do professor
+        turmas = db.execute('''
+            SELECT 
+                t.id,
+                t.nome as turma_nome,
+                t.codigo,
+                t.ano_letivo,
+                t.periodo,
+                t.alunos_matriculados,
+                m.nome as materia_nome,
+                m.horario,
+                m.dia_semana,
+                m.carga_horaria_semanal
+            FROM materias m
+            JOIN turmas t ON m.turma_id = t.id
+            WHERE m.professor_id = ?
+            ORDER BY t.nome
+        ''', (request.user_id,)).fetchall()
+        
+        return success_response('Turmas do professor carregadas', {
+            'turmas': [dict(turma) for turma in turmas]
+        })
+        
+    except Exception as e:
+        return error_response(str(e))
+
+@app.route('/api/professor/atividades', methods=['GET'])
+@token_required
+def get_atividades_professor():
+    try:
+        if request.user_type != 'professor':
+            return error_response('Acesso restrito a professores', 403)
+        
+        db = get_db()
+        
+        atividades = db.execute('''
+            SELECT 
+                a.*,
+                m.nome as materia_nome,
+                t.nome as turma_nome
+            FROM atividades a
+            JOIN materias m ON a.materia_id = m.id
+            JOIN turmas t ON m.turma_id = t.id
+            WHERE m.professor_id = ?
+            ORDER BY a.data_entrega DESC
+        ''', (request.user_id,)).fetchall()
+        
+        return success_response('Atividades carregadas', {
+            'atividades': [dict(atividade) for atividade in atividades]
+        })
+        
+    except Exception as e:
+        return error_response(str(e))
+
 def validar_conflito_horario(turma_id, horario, dia_semana, professor_id=None, materia_id=None):
     """Valida conflitos de horário na turma"""
     try:
@@ -1544,34 +1605,6 @@ def get_professores_disponiveis():
             prof_dict = dict(prof)
             prof_dict['turmas_count'] = prof_dict['turmas_count'] or 0
             professores_list.append(prof_dict)
-        
-        return success_response('Professores disponíveis carregados', {
-            'professores': professores_list
-        })
-        
-    except Exception as e:
-        print(f"Erro em professores-disponiveis: {e}")
-        return error_response(f'Erro ao carregar professores: {str(e)}')
-    try:
-        db = get_db()
-        
-        professores = db.execute('''
-            SELECT 
-                u.id, 
-                u.nome, 
-                u.email, 
-                u.telefone,
-                u.formacao,
-                u.experiencia,
-                COUNT(m.id) as turmas_count
-            FROM usuarios u
-            LEFT JOIN materias m ON u.id = m.professor_id
-            WHERE u.tipo = 'professor'
-            GROUP BY u.id
-            ORDER BY u.nome
-        ''').fetchall()
-        
-        professores_list = [dict(prof) for prof in professores]
         
         return success_response('Professores disponíveis carregados', {
             'professores': professores_list
@@ -1668,28 +1701,6 @@ def alocar_professor_turma(turma_id):
         import traceback
         traceback.print_exc()
         return error_response(f'Erro interno: {str(e)}')
-    try:
-        data = request.get_json()
-
-        print(f"Alocando professor na turma {turma_id}:", data)
-
-        required_fields = ['professor_id', 'materia_nome', 'horario', 'dia_semana']
-        for field in required_fields:
-            if field not in data or not data[field]:
-                return error_response(f'Campo obrigatório: {field}', 400)
-
-        # Validar conflito de horário
-        validacao = validar_conflito_horario(
-            turma_id, 
-            data['horario'], 
-            data['dia_semana'], 
-            data['professor_id']
-        )
-
-        if validacao['conflito']:
-            return error_response(validacao['mensagem'], 400)
-
-        db = get_db()
 
 # =============================================
 # ROTAS DO ALUNO (FRONTEND)
@@ -1853,41 +1864,6 @@ def get_sustainability_metrics():
         return success_response('Métricas carregadas', metrics)
     except Exception as e:
         return error_response(str(e))
-
-    """Valida conflitos de horário na turma"""
-    try:
-        db = get_db()
-
-        query = '''
-            SELECT m.id, m.nome as materia_nome, u.nome as professor_nome, 
-                   m.horario, m.dia_semana
-            FROM materias m
-            JOIN usuarios u ON m.professor_id = u.id
-            WHERE m.turma_id = ? AND m.horario = ? AND m.dia_semana = ?
-        '''
-        params = [turma_id, horario, dia_semana]
-
-        if professor_id:
-            query += ' AND m.professor_id = ?'
-            params.append(professor_id)
-
-        if materia_id:
-            query += ' AND m.id != ?'
-            params.append(materia_id)
-
-        conflito = db.execute(query, params).fetchone()
-
-        if conflito:
-            return {
-                'conflito': True,
-                'mensagem': f'Conflito de horário: {conflito["materia_nome"]} com {conflito["professor_nome"]}'
-            }
-
-        return {'conflito': False}
-
-    except Exception as e:
-        print(f'Erro na validação de horário: {e}')
-        return {'conflito': False}
 
 # =============================================
 # INICIALIZAÇÃO

@@ -192,8 +192,17 @@ async function loadInitialDashboard() {
             case 'aluno':
                 dashboardContent = await loadAlunoDashboardContent();
                 break;
+            case 'professor':
+                dashboardContent = await professorManager.loadProfessorDashboard();
+                break;
             default:
-                dashboardContent = '<div class="section"><h3>Tipo de usuário não reconhecido</h3></div>';
+                console.warn('⚠️ Tipo de usuário não reconhecido:', currentUser.tipo);
+                dashboardContent = `
+                    <div class="section">
+                        <h3>Tipo de usuário não suportado</h3>
+                        <p>Seu perfil (${currentUser.tipo}) não tem um dashboard configurado.</p>
+                    </div>
+                `;
         }
 
         contentArea.innerHTML = dashboardContent;
@@ -387,7 +396,7 @@ async function showSection(section) {
                     content = await loadAtividadesAluno();
                 }
                 break;
-                
+
             case 'professores':
                 if (currentUser.tipo === 'admin') {
                     sectionTitle.textContent = 'Gerenciar Professores';
@@ -397,7 +406,7 @@ async function showSection(section) {
 
             // Na função showSection(), substitua os casos dos professores por:
             case 'minhas-turmas':
-                 if (currentUser.tipo === 'professor') {
+                if (currentUser.tipo === 'professor') {
                     sectionTitle.textContent = 'Minhas Turmas';
                     content = await professorManager.loadTurmasSection();
                 }
@@ -460,7 +469,7 @@ async function showSection(section) {
 async function loadDashboardContent() {
     try {
         console.log('🔍 Carregando dashboard para:', currentUser);
-        
+
         // ✅ VERIFICAR SE currentUser EXISTE
         if (!currentUser || !currentUser.tipo) {
             console.error('❌ currentUser não definido:', currentUser);
