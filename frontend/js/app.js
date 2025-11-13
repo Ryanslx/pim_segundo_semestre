@@ -189,9 +189,6 @@ async function loadInitialDashboard() {
             case 'admin':
                 dashboardContent = await loadAdminDashboardContent();
                 break;
-            case 'professor':
-                dashboardContent = await loadProfessorDashboardContent();
-                break;
             case 'aluno':
                 dashboardContent = await loadAlunoDashboardContent();
                 break;
@@ -390,18 +387,33 @@ async function showSection(section) {
                     content = await loadAtividadesAluno();
                 }
                 break;
-
-            case 'minhas-turmas':
-                if (currentUser.tipo === 'professor') {
-                    sectionTitle.textContent = 'Minhas Turmas';
-                    content = await loadTurmasSection();
-                }
-                break;
-
+                
             case 'professores':
                 if (currentUser.tipo === 'admin') {
                     sectionTitle.textContent = 'Gerenciar Professores';
                     content = await loadProfessoresSection();
+                }
+                break;
+
+            // Na função showSection(), substitua os casos dos professores por:
+            case 'minhas-turmas':
+                 if (currentUser.tipo === 'professor') {
+                    sectionTitle.textContent = 'Minhas Turmas';
+                    content = await professorManager.loadTurmasSection();
+                }
+                break;
+
+            case 'atividades':
+                if (currentUser.tipo === 'professor') {
+                    sectionTitle.textContent = 'Gestão de Atividades';
+                    content = await professorManager.loadAtividadesSection();
+                }
+                break;
+
+            case 'avaliacoes':
+                if (currentUser.tipo === 'professor') {
+                    sectionTitle.textContent = 'Sistema de Avaliações';
+                    content = await professorManager.loadAvaliacoesSection();
                 }
                 break;
 
@@ -447,26 +459,46 @@ async function showSection(section) {
 // Função corrigida para carregar o dashboard
 async function loadDashboardContent() {
     try {
-        // Carregar dados específicos baseado no tipo de usuário
+        console.log('🔍 Carregando dashboard para:', currentUser);
+        
+        // ✅ VERIFICAR SE currentUser EXISTE
+        if (!currentUser || !currentUser.tipo) {
+            console.error('❌ currentUser não definido:', currentUser);
+            return `
+                <div class="section">
+                    <h3>Erro: Usuário não autenticado</h3>
+                    <p>Faça login novamente.</p>
+                    <button class="btn btn-primary" onclick="logout()">Fazer Login</button>
+                </div>
+            `;
+        }
+
         let dashboardContent = '';
 
         switch (currentUser.tipo) {
             case 'admin':
                 dashboardContent = await loadAdminDashboardContent();
                 break;
-            case 'professor':
-                dashboardContent = await loadProfessorDashboardContent();
-                break;
             case 'aluno':
                 dashboardContent = await loadAlunoDashboardContent();
                 break;
+            case 'professor':
+                // ✅ CORRIGIDO: Usar o novo dashboard do professor
+                dashboardContent = await professorManager.loadProfessorDashboard();
+                break;
             default:
-                dashboardContent = '<div class="section"><p>Tipo de usuário não reconhecido</p></div>';
+                console.warn('⚠️ Tipo de usuário não reconhecido:', currentUser.tipo);
+                dashboardContent = `
+                    <div class="section">
+                        <h3>Tipo de usuário não suportado</h3>
+                        <p>Seu perfil (${currentUser.tipo}) não tem um dashboard configurado.</p>
+                    </div>
+                `;
         }
 
         return dashboardContent;
     } catch (error) {
-        console.error('Erro ao carregar dashboard:', error);
+        console.error('❌ Erro ao carregar dashboard:', error);
         return `
             <div class="section">
                 <h3>Erro ao carregar dashboard</h3>
@@ -474,54 +506,6 @@ async function loadDashboardContent() {
             </div>
         `;
     }
-}
-
-// Dashboard do Professor (função renomeada)
-async function loadProfessorDashboardContent() {
-    return `
-        <div class="dashboard">
-            <div class="card">
-                <div class="card-header">
-                    <div>
-                        <h3>5</h3>
-                        <p>Turmas Ativas</p>
-                    </div>
-                    <div class="card-icon blue">
-                        <i class="fas fa-users"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <div>
-                        <h3>12</h3>
-                        <p>Atividades Pendentes</p>
-                    </div>
-                    <div class="card-icon orange">
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <div>
-                        <h3>45</h3>
-                        <p>Alunos</p>
-                    </div>
-                    <div class="card-icon green">
-                        <i class="fas fa-user-graduate"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <h3>Bem-vindo, Professor!</h3>
-            <p>Use o menu lateral para acessar as funcionalidades do sistema.</p>
-        </div>
-    `;
 }
 
 // Dashboard do Aluno (função renomeada)
