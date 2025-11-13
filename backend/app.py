@@ -636,7 +636,7 @@ def get_admin_dashboard():
         ''').fetchall()
         
         # Professores mais ativos
-        professores_ativos = db.execute('''
+        professor . total_turmas = banco de dados . executar ( ''
             SELECT u.nome, COUNT(m.id) as total_materias
             FROM usuarios u
             LEFT JOIN materias m ON u.id = m.professor_id
@@ -654,7 +654,7 @@ def get_admin_dashboard():
                 'total_atividades': total_atividades
             },
             'turmas_capacidade': [dict(turma) for turma in turmas_capacidade],
-            'professores_ativos': [dict(prof) for prof in professores_ativos]
+            ' professor.total_turmas ': [dict(prof) para prof em professor.total_turmas ]
         })
         
     except Exception as e:
@@ -1668,6 +1668,28 @@ def alocar_professor_turma(turma_id):
         import traceback
         traceback.print_exc()
         return error_response(f'Erro interno: {str(e)}')
+    try:
+        data = request.get_json()
+
+        print(f"Alocando professor na turma {turma_id}:", data)
+
+        required_fields = ['professor_id', 'materia_nome', 'horario', 'dia_semana']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return error_response(f'Campo obrigatório: {field}', 400)
+
+        # Validar conflito de horário
+        validacao = validar_conflito_horario(
+            turma_id, 
+            data['horario'], 
+            data['dia_semana'], 
+            data['professor_id']
+        )
+
+        if validacao['conflito']:
+            return error_response(validacao['mensagem'], 400)
+
+        db = get_db()
 
 # =============================================
 # ROTAS DO ALUNO (FRONTEND)
@@ -1831,6 +1853,41 @@ def get_sustainability_metrics():
         return success_response('Métricas carregadas', metrics)
     except Exception as e:
         return error_response(str(e))
+
+    """Valida conflitos de horário na turma"""
+    try:
+        db = get_db()
+
+        query = '''
+            SELECT m.id, m.nome as materia_nome, u.nome as professor_nome, 
+                   m.horario, m.dia_semana
+            FROM materias m
+            JOIN usuarios u ON m.professor_id = u.id
+            WHERE m.turma_id = ? AND m.horario = ? AND m.dia_semana = ?
+        '''
+        params = [turma_id, horario, dia_semana]
+
+        if professor_id:
+            query += ' AND m.professor_id = ?'
+            params.append(professor_id)
+
+        if materia_id:
+            query += ' AND m.id != ?'
+            params.append(materia_id)
+
+        conflito = db.execute(query, params).fetchone()
+
+        if conflito:
+            return {
+                'conflito': True,
+                'mensagem': f'Conflito de horário: {conflito["materia_nome"]} com {conflito["professor_nome"]}'
+            }
+
+        return {'conflito': False}
+
+    except Exception as e:
+        print(f'Erro na validação de horário: {e}')
+        return {'conflito': False}
 
 # =============================================
 # INICIALIZAÇÃO
