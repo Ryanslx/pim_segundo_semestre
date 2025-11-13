@@ -1228,7 +1228,7 @@ tr:hover {
     text-align: center;
     border: 1px solid var(--light-gray);
     transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .stat-card-professor:hover {
@@ -1248,10 +1248,21 @@ tr:hover {
     color: white;
 }
 
-.stat-icon.turmas { background: var(--primary); }
-.stat-icon.atividades { background: var(--success); }
-.stat-icon.alunos { background: var(--warning); }
-.stat-icon.avaliacoes { background: var(--info); }
+.stat-icon.turmas {
+    background: var(--primary);
+}
+
+.stat-icon.atividades {
+    background: var(--success);
+}
+
+.stat-icon.alunos {
+    background: var(--warning);
+}
+
+.stat-icon.avaliacoes {
+    background: var(--info);
+}
 
 .stat-value {
     font-size: 2rem;
@@ -1505,7 +1516,7 @@ tr:hover {
         grid-template-columns: 1fr;
         gap: 20px;
     }
-    
+
     .turmas-section,
     .atividades-section {
         grid-column: 1;
@@ -1517,19 +1528,19 @@ tr:hover {
         grid-template-columns: 1fr;
         gap: 15px;
     }
-    
+
     .turma-actions {
         flex-direction: column;
     }
-    
+
     .turma-actions .btn {
         min-width: auto;
     }
-    
+
     .welcome-section {
         padding: 20px;
     }
-    
+
     .welcome-section h3 {
         font-size: 1.3rem;
     }
@@ -1804,7 +1815,7 @@ tr:hover {
 }
 
 .turmas-list {
-    max-height: 200px;
+    max-height: 100%;
     overflow-y: auto;
 }
 

@@ -35,14 +35,6 @@ class ProfessorManager {
                     console.log('📊 Turmas carregadas:', turmasData);
                 } else {
                     console.warn('⚠️ Erro ao carregar turmas:', turmasRes.status);
-                    // Tentar fallback para API alternativa
-                    const fallbackRes = await fetch(`${API_BASE}/admin/professores/${currentUser.id}/turmas`, {
-                        headers: getAuthHeaders()
-                    });
-                    if (fallbackRes.ok) {
-                        turmasData = await fallbackRes.json();
-                        console.log('📊 Turmas (fallback):', turmasData);
-                    }
                 }
             } catch (turmaError) {
                 console.error('❌ Erro na busca de turmas:', turmaError);
@@ -123,35 +115,6 @@ class ProfessorManager {
                         </div>
                     </div>
 
-                    <!-- ✅ TURMAS (LADO ESQUERDO) -->
-                    <div class="turmas-section">
-                        <div class="section">
-                            <div class="section-header">
-                                <h2>Minhas Turmas</h2>
-                                <span class="badge badge-info">${turmasData.turmas ? turmasData.turmas.length : 0} turmas</span>
-                            </div>
-                            
-                            ${turmasData.turmas && turmasData.turmas.length > 0 ? `
-                                <div class="turmas-list">
-                                    ${turmasData.turmas.slice(0, 3).map(turma => this.createTurmaCard(turma)).join('')}
-                                </div>
-                                ${turmasData.turmas.length > 3 ? `
-                                    <div class="text-center" style="margin-top: 15px;">
-                                        <button class="btn btn-primary" onclick="showSection('minhas-turmas')">
-                                            <i class="fas fa-eye"></i> Ver Todas as Turmas
-                                        </button>
-                                    </div>
-                                ` : ''}
-                            ` : `
-                                <div class="empty-state-professor">
-                                    <i class="fas fa-users fa-3x"></i>
-                                    <h3>Nenhuma turma atribuída</h3>
-                                    <p>Você não está ministrando aulas em nenhuma turma no momento.</p>
-                                </div>
-                            `}
-                        </div>
-                    </div>
-
                     <!-- ✅ ATIVIDADES (LADO DIREITO) -->
                     <div class="atividades-section">
                         <div class="section">
@@ -185,6 +148,37 @@ class ProfessorManager {
                             `}
                         </div>
                     </div>
+
+                    <!-- ✅ TURMAS (LADO ESQUERDO) -->
+                    <div class="turmas-section">
+                        <div class="section">
+                            <div class="section-header">
+                                <h2>Minhas Turmas</h2>
+                                <span class="badge badge-info">${turmasData.turmas ? turmasData.turmas.length : 0} turmas</span>
+                            </div>
+                            
+                            ${turmasData.turmas && turmasData.turmas.length > 0 ? `
+                                <div class="turmas-list">
+                                    ${turmasData.turmas.slice(0, 3).map(turma => this.createTurmaCard(turma)).join('')}
+                                </div>
+                                ${turmasData.turmas.length > 3 ? `
+                                    <div class="text-center" style="margin-top: 15px;">
+                                        <button class="btn btn-primary" onclick="showSection('minhas-turmas')">
+                                            <i class="fas fa-eye"></i> Ver Todas as Turmas
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            ` : `
+                                <div class="empty-state-professor">
+                                    <i class="fas fa-users fa-3x"></i>
+                                    <h3>Nenhuma turma atribuída</h3>
+                                    <p>Você não está ministrando aulas em nenhuma turma no momento.</p>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+
+                    
                 </div>
             `;
         } catch (error) {
@@ -362,6 +356,566 @@ class ProfessorManager {
     }
 
     // =============================================
+    // FUNÇÕES DE ATIVIDADES - CORRIGIDAS
+    // =============================================
+
+    async criarAtividade() {
+        try {
+            const turmaId = document.getElementById('atividade-turma-hidden') ?
+                document.getElementById('atividade-turma-hidden').value :
+                document.getElementById('atividade-turma').value;
+
+            const materiaId = document.getElementById('atividade-materia').value;
+
+            if (!materiaId) {
+                showNotification('Por favor, selecione uma matéria', 'error');
+                return;
+            }
+
+            const formData = {
+                titulo: document.getElementById('atividade-titulo').value,
+                descricao: document.getElementById('atividade-descricao').value,
+                materia_id: parseInt(materiaId),
+                valor: parseFloat(document.getElementById('atividade-valor').value),
+                data_entrega: document.getElementById('atividade-data-entrega').value
+            };
+
+            console.log('Enviando dados da atividade:', formData);
+
+            const response = await fetch(`${API_BASE}/professor/atividades`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(formData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Erro detalhado:', errorText);
+                throw new Error(`Erro ${response.status}: ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            showNotification('Atividade criada com sucesso!', 'success');
+            closeModal('criar-atividade-modal');
+
+            // Recarregar a seção de atividades
+            showSection('atividades');
+
+        } catch (error) {
+            console.error('Erro ao criar atividade:', error);
+            showNotification('Erro ao criar atividade: ' + error.message, 'error');
+        }
+    }
+
+    async editarAtividade(atividadeId) {
+        try {
+            // Primeiro, carregar dados da atividade
+            const atividadesResponse = await fetch(`${API_BASE}/professor/atividades`, {
+                headers: getAuthHeaders()
+            });
+
+            if (!atividadesResponse.ok) {
+                throw new Error('Erro ao carregar atividades');
+            }
+
+            const atividadesData = await atividadesResponse.json();
+            const atividade = atividadesData.atividades.find(a => a.id === atividadeId);
+
+            if (!atividade) {
+                throw new Error('Atividade não encontrada');
+            }
+
+            const modalContent = `
+                <div class="modal-header">
+                    <h3>Editar Atividade</h3>
+                    <button class="modal-close" onclick="closeModal('editar-atividade-modal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-editar-atividade" class="atividade-form">
+                        <div class="form-group">
+                            <label for="editar-titulo">Título da Atividade *</label>
+                            <input type="text" id="editar-titulo" value="${atividade.titulo}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editar-descricao">Descrição</label>
+                            <textarea id="editar-descricao" rows="4">${atividade.descricao || ''}</textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="editar-turma">Turma</label>
+                                <input type="text" id="editar-turma" value="${atividade.turma_nome}" disabled>
+                                <small>A turma não pode ser alterada</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="editar-valor">Valor (pontos) *</label>
+                                <input type="number" id="editar-valor" value="${atividade.valor}" min="1" max="100" step="0.5" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editar-data-entrega">Data de Entrega *</label>
+                            <input type="date" id="editar-data-entrega" value="${atividade.data_entrega.split('T')[0]}" required>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('editar-atividade-modal')">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            this.showCustomModal('editar-atividade-modal', modalContent);
+
+            // Configurar submit do formulário
+            document.getElementById('form-editar-atividade').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.salvarEdicaoAtividade(atividadeId);
+            });
+
+        } catch (error) {
+            console.error('Erro ao abrir edição:', error);
+            showNotification('Erro ao carregar dados da atividade: ' + error.message, 'error');
+        }
+    }
+
+    async salvarEdicaoAtividade(atividadeId) {
+        try {
+            const formData = {
+                titulo: document.getElementById('editar-titulo').value,
+                descricao: document.getElementById('editar-descricao').value,
+                valor: parseFloat(document.getElementById('editar-valor').value),
+                data_entrega: document.getElementById('editar-data-entrega').value
+            };
+
+            const response = await fetch(`${API_BASE}/professor/atividades/${atividadeId}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(formData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Erro ${response.status}: ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            showNotification('Atividade atualizada com sucesso!', 'success');
+            closeModal('editar-atividade-modal');
+
+            // Recarregar a seção de atividades
+            showSection('atividades');
+
+        } catch (error) {
+            console.error('Erro ao editar atividade:', error);
+            showNotification('Erro ao editar atividade: ' + error.message, 'error');
+        }
+    }
+
+    async excluirAtividade(atividadeId) {
+        if (!confirm('Tem certeza que deseja excluir esta atividade?\n\nEsta ação não pode ser desfeita.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/professor/atividades/${atividadeId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Erro ${response.status}: ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            showNotification('Atividade excluída com sucesso!', 'success');
+
+            // Recarregar a seção de atividades
+            showSection('atividades');
+
+        } catch (error) {
+            console.error('Erro ao excluir atividade:', error);
+            showNotification('Erro ao excluir atividade: ' + error.message, 'error');
+        }
+    }
+
+    // =============================================
+    // SISTEMA DE AVALIAÇÕES
+    // =============================================
+
+    async avaliarAtividade(atividadeId) {
+        try {
+            console.log('Abrindo avaliação para atividade:', atividadeId);
+
+            // Carregar alunos para avaliação
+            const response = await fetch(`${API_BASE}/professor/atividades/${atividadeId}/alunos`, {
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao carregar alunos para avaliação');
+            }
+
+            const data = await response.json();
+            const { atividade, alunos } = data;
+
+            console.log('Dados carregados:', { atividade, alunos });
+
+            let alunosHTML = '';
+
+            if (alunos && alunos.length > 0) {
+                alunosHTML = alunos.map(aluno => `
+                    <div class="aluno-avaliacao-item">
+                        <div class="aluno-info">
+                            <strong>${aluno.nome}</strong>
+                            <br>
+                            <small>Matrícula: ${aluno.matricula}</small>
+                            ${aluno.nota ? `<br><small>Nota atual: ${aluno.nota}</small>` : ''}
+                        </div>
+                        <div class="avaliacao-inputs">
+                            <div class="form-group">
+                                <label for="nota-${aluno.id}">Nota (0-${atividade.valor})</label>
+                                <input type="number" id="nota-${aluno.id}" 
+                                       value="${aluno.nota || ''}" 
+                                       min="0" max="${atividade.valor}" step="0.1"
+                                       placeholder="0.0">
+                            </div>
+                            <div class="form-group">
+                                <label for="feedback-${aluno.id}">Feedback</label>
+                                <textarea id="feedback-${aluno.id}" rows="2" 
+                                          placeholder="Feedback para o aluno">${aluno.feedback || ''}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                alunosHTML = '<p>Nenhum aluno encontrado para esta turma.</p>';
+            }
+
+            const modalContent = `
+                <div class="modal-header">
+                    <h3>Avaliar Atividade: ${atividade.titulo}</h3>
+                    <button class="modal-close" onclick="closeModal('avaliar-atividade-modal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="atividade-info">
+                        <p><strong>Turma:</strong> ${atividade.turma_nome}</p>
+                        <p><strong>Valor:</strong> ${atividade.valor} pontos</p>
+                        <p><strong>Data de Entrega:</strong> ${new Date(atividade.data_entrega).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    
+                    <form id="form-avaliacao">
+                        <div class="avaliacao-alunos-list">
+                            ${alunosHTML}
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('avaliar-atividade-modal')">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Salvar Avaliações</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            this.showCustomModal('avaliar-atividade-modal', modalContent);
+
+            // Configurar submit do formulário
+            document.getElementById('form-avaliacao').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.salvarAvaliacoes(atividadeId, alunos);
+            });
+
+        } catch (error) {
+            console.error('Erro ao abrir avaliação:', error);
+            showNotification('Erro ao carregar dados para avaliação: ' + error.message, 'error');
+        }
+    }
+
+    async salvarAvaliacoes(atividadeId, alunos) {
+        try {
+            const avaliacoes = [];
+
+            // Coletar avaliações de todos os alunos
+            for (const aluno of alunos) {
+                const notaInput = document.getElementById(`nota-${aluno.id}`);
+                const feedbackInput = document.getElementById(`feedback-${aluno.id}`);
+
+                const nota = notaInput.value.trim();
+
+                // Só incluir se a nota foi preenchida
+                if (nota) {
+                    avaliacoes.push({
+                        aluno_id: aluno.id,
+                        nota: parseFloat(nota),
+                        feedback: feedbackInput.value.trim() || ''
+                    });
+                }
+            }
+
+            if (avaliacoes.length === 0) {
+                showNotification('Preencha pelo menos uma nota para salvar', 'warning');
+                return;
+            }
+
+            console.log('Enviando avaliações:', avaliacoes);
+
+            const response = await fetch(`${API_BASE}/professor/atividades/${atividadeId}/avaliar`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ avaliacoes })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Erro ${response.status}: ${errorText}`);
+            }
+
+            const result = await response.json();
+
+            showNotification('Avaliações salvas com sucesso!', 'success');
+            closeModal('avaliar-atividade-modal');
+
+        } catch (error) {
+            console.error('Erro ao salvar avaliações:', error);
+            showNotification('Erro ao salvar avaliações: ' + error.message, 'error');
+        }
+    }
+
+    async verAvaliacoes(atividadeId) {
+        try {
+            console.log('Carregando avaliações da atividade:', atividadeId);
+
+            const response = await fetch(`${API_BASE}/professor/atividades/${atividadeId}/avaliacoes`, {
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao carregar avaliações');
+            }
+
+            const data = await response.json();
+            const { atividade, avaliacoes, estatisticas } = data;
+
+            console.log('Avaliações carregadas:', { atividade, avaliacoes, estatisticas });
+
+            let avaliacoesHTML = '';
+
+            if (avaliacoes && avaliacoes.length > 0) {
+                avaliacoesHTML = avaliacoes.map(avaliacao => `
+                    <div class="avaliacao-item">
+                        <div class="avaliacao-header">
+                            <strong>${avaliacao.aluno_nome}</strong>
+                            <span class="nota-badge ${this.getClassNota(avaliacao.nota, atividade.valor)}">
+                                ${avaliacao.nota}/${atividade.valor}
+                            </span>
+                        </div>
+                        <div class="avaliacao-details">
+                            <small>Matrícula: ${avaliacao.matricula}</small>
+                            <br>
+                            <small>Avaliado em: ${new Date(avaliacao.data_avaliacao).toLocaleDateString('pt-BR')}</small>
+                            ${avaliacao.avaliador_nome ? `<br><small>Por: ${avaliacao.avaliador_nome}</small>` : ''}
+                        </div>
+                        ${avaliacao.feedback ? `
+                            <div class="avaliacao-feedback">
+                                <strong>Feedback:</strong> ${avaliacao.feedback}
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } else {
+                avaliacoesHTML = '<p>Nenhuma avaliação registrada para esta atividade.</p>';
+            }
+
+            const estatisticasHTML = estatisticas && estatisticas.total_avaliacoes > 0 ? `
+                <div class="estatisticas-avaliacao">
+                    <h4>Estatísticas da Atividade</h4>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value">${estatisticas.total_avaliacoes}</span>
+                            <span class="stat-label">Avaliações</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${estatisticas.media_geral ? estatisticas.media_geral.toFixed(1) : '0'}</span>
+                            <span class="stat-label">Média</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${estatisticas.nota_minima || '0'}</span>
+                            <span class="stat-label">Mínima</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${estatisticas.nota_maxima || '0'}</span>
+                            <span class="stat-label">Máxima</span>
+                        </div>
+                    </div>
+                </div>
+            ` : '';
+
+            const modalContent = `
+                <div class="modal-header">
+                    <h3>Avaliações: ${atividade.titulo}</h3>
+                    <button class="modal-close" onclick="closeModal('ver-avaliacoes-modal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="atividade-info">
+                        <p><strong>Turma:</strong> ${atividade.turma_nome}</p>
+                        <p><strong>Matéria:</strong> ${atividade.materia_nome}</p>
+                        <p><strong>Valor:</strong> ${atividade.valor} pontos</p>
+                    </div>
+                    
+                    ${estatisticasHTML}
+                    
+                    <div class="avaliacoes-list">
+                        <h4>Avaliações dos Alunos</h4>
+                        ${avaliacoesHTML}
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary" onclick="closeModal('ver-avaliacoes-modal'); professorManager.avaliarAtividade(${atividadeId})">
+                            <i class="fas fa-edit"></i> Editar Avaliações
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('ver-avaliacoes-modal')">
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            this.showCustomModal('ver-avaliacoes-modal', modalContent);
+
+        } catch (error) {
+            console.error('Erro ao carregar avaliações:', error);
+            showNotification('Erro ao carregar avaliações: ' + error.message, 'error');
+        }
+    }
+
+    // =============================================
+    // DESEMPENHO DO ALUNO
+    // =============================================
+
+    async viewAlunoPerformance(alunoId) {
+        try {
+            console.log('Carregando desempenho do aluno:', alunoId);
+
+            const response = await fetch(`${API_BASE}/professor/alunos/${alunoId}/desempenho`, {
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao carregar desempenho do aluno');
+            }
+
+            const data = await response.json();
+            const { aluno, desempenho, estatisticas } = data;
+
+            console.log('Desempenho carregado:', { aluno, desempenho, estatisticas });
+
+            let desempenhoHTML = '';
+
+            if (desempenho && desempenho.length > 0) {
+                desempenhoHTML = desempenho.map(item => `
+                    <div class="desempenho-item">
+                        <div class="desempenho-header">
+                            <strong>${item.atividade_titulo}</strong>
+                            <span class="nota-badge ${this.getClassNota(item.nota, item.valor_atividade)}">
+                                ${item.nota}/${item.valor_atividade}
+                            </span>
+                        </div>
+                        <div class="desempenho-details">
+                            <small>Matéria: ${item.materia_nome}</small>
+                            <br>
+                            <small>Avaliado em: ${new Date(item.data_avaliacao).toLocaleDateString('pt-BR')}</small>
+                        </div>
+                        ${item.feedback ? `
+                            <div class="desempenho-feedback">
+                                <strong>Feedback:</strong> ${item.feedback}
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } else {
+                desempenhoHTML = '<p>Nenhuma atividade avaliada para este aluno.</p>';
+            }
+
+            const estatisticasHTML = estatisticas && estatisticas.total_atividades > 0 ? `
+                <div class="estatisticas-desempenho">
+                    <h4>Estatísticas do Aluno</h4>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value">${estatisticas.total_atividades}</span>
+                            <span class="stat-label">Atividades</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${estatisticas.media_geral ? estatisticas.media_geral.toFixed(1) : '0'}</span>
+                            <span class="stat-label">Média Geral</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${estatisticas.aprovados || 0}</span>
+                            <span class="stat-label">Aprovados</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${estatisticas.reprovados || 0}</span>
+                            <span class="stat-label">Reprovados</span>
+                        </div>
+                    </div>
+                </div>
+            ` : '<p>Nenhuma estatística disponível.</p>';
+
+            const modalContent = `
+                <div class="modal-header">
+                    <h3>Desempenho do Aluno</h3>
+                    <button class="modal-close" onclick="closeModal('desempenho-aluno-modal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="aluno-info">
+                        <h4>${aluno.nome}</h4>
+                        <p><strong>Matrícula:</strong> ${aluno.matricula}</p>
+                        <p><strong>Turma:</strong> ${aluno.turma_nome || 'Não atribuída'}</p>
+                    </div>
+                    
+                    ${estatisticasHTML}
+                    
+                    <div class="desempenho-list">
+                        <h4>Histórico de Atividades</h4>
+                        ${desempenhoHTML}
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('desempenho-aluno-modal')">
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            this.showCustomModal('desempenho-aluno-modal', modalContent);
+
+        } catch (error) {
+            console.error('Erro ao carregar desempenho:', error);
+            showNotification('Erro ao carregar desempenho do aluno: ' + error.message, 'error');
+        }
+    }
+
+    // =============================================
+    // FUNÇÕES AUXILIARES
+    // =============================================
+
+    getClassNota(nota, valorMaximo) {
+        const percentual = (nota / valorMaximo) * 100;
+
+        if (percentual >= 80) return 'nota-excelente';
+        if (percentual >= 60) return 'nota-boa';
+        if (percentual >= 40) return 'nota-regular';
+        return 'nota-insuficiente';
+    }
+
+    // =============================================
     // COMPONENTES VISUAIS
     // =============================================
     createTurmaCard(turma) {
@@ -452,7 +1006,8 @@ class ProfessorManager {
         try {
             console.log('Carregando alunos da turma:', turmaId);
 
-            const response = await fetch(`${API_BASE}/professor/turma/${turmaId}/alunos`, {
+            // Buscar alunos da turma através da API de admin
+            const response = await fetch(`${API_BASE}/admin/turmas/${turmaId}/alunos`, {
                 headers: getAuthHeaders()
             });
 
@@ -481,6 +1036,7 @@ class ProfessorManager {
                                     <div class="aluno-details">
                                         <span>RA: ${aluno.matricula}</span>
                                         <span>Email: ${aluno.email}</span>
+                                        ${aluno.media_geral ? `<span>Média: ${aluno.media_geral.toFixed(1)}</span>` : ''}
                                     </div>
                                 </div>
                                 <div class="aluno-actions">
@@ -507,6 +1063,7 @@ class ProfessorManager {
         }
     }
 
+    // Método atualizado para mostrar o modal de criação de atividade
     async showCriarAtividadeModal(turmaId = null) {
         try {
             console.log('Abrindo modal de criar atividade para turma:', turmaId);
@@ -518,55 +1075,114 @@ class ProfessorManager {
 
             const turmasData = response.ok ? await response.json() : { turmas: [] };
 
-            const modalContent = `
-                <div class="modal-header">
-                    <h3>${turmaId ? 'Criar Atividade para Turma' : 'Nova Atividade'}</h3>
-                    <button class="modal-close" onclick="closeModal('criar-atividade-modal')">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <form id="form-criar-atividade" class="atividade-form">
-                        <div class="form-group">
-                            <label for="atividade-titulo">Título da Atividade *</label>
-                            <input type="text" id="atividade-titulo" required placeholder="Ex: Trabalho de Matemática - Álgebra">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="atividade-descricao">Descrição</label>
-                            <textarea id="atividade-descricao" placeholder="Descreva a atividade, objetivos, materiais necessários..." rows="4"></textarea>
-                        </div>
-                        
-                        <div class="form-row">
+            // Se uma turma específica foi passada, carregar suas matérias
+            let materiasHTML = '';
+            if (turmaId) {
+                try {
+                    const materiasResponse = await fetch(`${API_BASE}/professor/turmas/${turmaId}/materias`, {
+                        headers: getAuthHeaders()
+                    });
+
+                    if (materiasResponse.ok) {
+                        const materiasData = await materiasResponse.json();
+                        if (materiasData.materias && materiasData.materias.length > 0) {
+                            materiasHTML = `
                             <div class="form-group">
-                                <label for="atividade-turma">Turma *</label>
-                                <select id="atividade-turma" required ${turmaId ? 'disabled' : ''}>
-                                    ${turmaId ? '' : '<option value="">Selecione uma turma</option>'}
-                                    ${turmasData.turmas.map(turma => `
-                                        <option value="${turma.id}" ${turmaId == turma.id ? 'selected' : ''}>
-                                            ${turma.nome || turma.turma_nome} - ${turma.materia_nome}
-                                        </option>
+                                <label for="atividade-materia">Matéria *</label>
+                                <select id="atividade-materia" required>
+                                    <option value="">Selecione a matéria</option>
+                                    ${materiasData.materias.map(materia => `
+                                        <option value="${materia.id}">${materia.nome}</option>
                                     `).join('')}
                                 </select>
-                                ${turmaId ? '<input type="hidden" id="atividade-turma-hidden" value="' + turmaId + '">' : ''}
                             </div>
-                            
-                            <div class="form-group">
-                                <label for="atividade-valor">Valor (pontos) *</label>
-                                <input type="number" id="atividade-valor" value="10" min="1" max="100" step="0.5" required>
+                        `;
+                        } else {
+                            materiasHTML = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Nenhuma matéria encontrada para esta turma.
                             </div>
+                        `;
+                        }
+                    }
+                } catch (materiaError) {
+                    console.warn('Erro ao carregar matérias:', materiaError);
+                    materiasHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i>
+                            Erro ao carregar matérias.
                         </div>
+                    `;
+                }
+            } else {
+                // Se não há turma específica, mostrar campo de turma
+                materiasHTML = `
+                    <div class="form-group">
+                        <label for="atividade-turma">Turma *</label>
+                        <select id="atividade-turma" required onchange="professorManager.carregarMateriasPorTurma(this.value)">
+                            <option value="">Selecione uma turma</option>
+                            ${turmasData.turmas.map(turma => `
+                                <option value="${turma.id}">
+                                    ${turma.nome || turma.turma_nome} - ${turma.materia_nome}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div id="materias-container"></div>
+                `;
+            }
+
+            const modalContent = `
+            <div class="modal-header">
+                <h3>${turmaId ? 'Criar Atividade para Turma' : 'Nova Atividade'}</h3>
+                <button class="modal-close" onclick="closeModal('criar-atividade-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-criar-atividade" class="atividade-form">
+                    <div class="form-group">
+                        <label for="atividade-titulo">Título da Atividade *</label>
+                        <input type="text" id="atividade-titulo" required placeholder="Ex: Trabalho de Matemática - Álgebra">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="atividade-descricao">Descrição</label>
+                        <textarea id="atividade-descricao" placeholder="Descreva a atividade, objetivos, materiais necessários..." rows="4"></textarea>
+                    </div>
+                    
+                    ${turmaId ? `
+                        <div class="form-group">
+                            <label for="atividade-turma-display">Turma</label>
+                            <input type="text" id="atividade-turma-display" value="${turmasData.turmas.find(t => t.id == turmaId)?.nome || turmasData.turmas.find(t => t.id == turmaId)?.turma_nome}" disabled>
+                            <input type="hidden" id="atividade-turma-hidden" value="${turmaId}">
+                        </div>
+                    ` : ''}
+                    
+                    <div class="form-row">
+                        ${turmaId ? materiasHTML : `
+                            <div class="form-group full-width">
+                                ${materiasHTML}
+                            </div>
+                        `}
                         
                         <div class="form-group">
-                            <label for="atividade-data-entrega">Data de Entrega *</label>
-                            <input type="date" id="atividade-data-entrega" required min="${new Date().toISOString().split('T')[0]}">
+                            <label for="atividade-valor">Valor (pontos) *</label>
+                            <input type="number" id="atividade-valor" value="10" min="1" max="100" step="0.5" required>
                         </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" onclick="closeModal('criar-atividade-modal')">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Criar Atividade</button>
-                        </div>
-                    </form>
-                </div>
-            `;
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="atividade-data-entrega">Data de Entrega *</label>
+                        <input type="date" id="atividade-data-entrega" required min="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('criar-atividade-modal')">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Criar Atividade</button>
+                    </div>
+                </form>
+            </div>
+        `;
 
             this.showCustomModal('criar-atividade-modal', modalContent);
 
@@ -578,6 +1194,64 @@ class ProfessorManager {
         } catch (error) {
             console.error('Erro ao abrir modal:', error);
             showNotification('Erro ao carregar formulário: ' + error.message, 'error');
+        }
+    }
+
+    async carregarMateriasPorTurma(turmaId) {
+        try {
+            const materiasContainer = document.getElementById('materias-container');
+            if (!materiasContainer) return;
+
+            if (!turmaId) {
+                materiasContainer.innerHTML = '';
+                return;
+            }
+
+            const response = await fetch(`${API_BASE}/professor/turmas/${turmaId}/materias`, {
+                headers: getAuthHeaders()
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.materias && data.materias.length > 0) {
+                    materiasContainer.innerHTML = `
+                        <div class="form-group">
+                            <label for="atividade-materia">Matéria *</label>
+                            <select id="atividade-materia" required>
+                                <option value="">Selecione a matéria</option>
+                                ${data.materias.map(materia => `
+                                    <option value="${materia.id}">${materia.nome}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                    `;
+                } else {
+                    materiasContainer.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Nenhuma matéria encontrada para esta turma.
+                        </div>
+                    `;
+                }
+            } else {
+                materiasContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Erro ao carregar matérias.
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar matérias:', error);
+            const materiasContainer = document.getElementById('materias-container');
+            if (materiasContainer) {
+                materiasContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Erro ao carregar matérias: ${error.message}
+                    </div>
+                `;
+            }
         }
     }
 
@@ -640,35 +1314,6 @@ class ProfessorManager {
             </div>
         `;
     }
-
-    // =============================================
-    // FUNÇÕES FUTURAS (PLACEHOLDER)
-    // =============================================
-    async criarAtividade() {
-        showNotification('Funcionalidade de criação de atividade em desenvolvimento', 'info');
-    }
-
-    async avaliarAtividade(atividadeId) {
-        showNotification('Funcionalidade de avaliação em desenvolvimento', 'info');
-    }
-
-    async editarAtividade(atividadeId) {
-        showNotification('Funcionalidade de edição em desenvolvimento', 'info');
-    }
-
-    async excluirAtividade(atividadeId) {
-        if (confirm('Tem certeza que deseja excluir esta atividade?')) {
-            showNotification('Funcionalidade de exclusão em desenvolvimento', 'info');
-        }
-    }
-
-    async viewAlunoPerformance(alunoId) {
-        showNotification('Visualização de desempenho em desenvolvimento', 'info');
-    }
-
-    async verAvaliacoes(atividadeId) {
-        showNotification('Visualização de avaliações em desenvolvimento', 'info');
-    }
 }
 
 // Instância global do gerenciador de professores
@@ -685,4 +1330,29 @@ async function viewTurmaAlunos(turmaId) {
 
 function createAtividade(turmaId) {
     professorManager.showCriarAtividadeModal(turmaId);
+}
+
+// Funções globais para os botões
+async function criarAtividade() {
+    return await professorManager.criarAtividade();
+}
+
+async function avaliarAtividade(atividadeId) {
+    return await professorManager.avaliarAtividade(atividadeId);
+}
+
+async function editarAtividade(atividadeId) {
+    return await professorManager.editarAtividade(atividadeId);
+}
+
+async function excluirAtividade(atividadeId) {
+    return await professorManager.excluirAtividade(atividadeId);
+}
+
+async function verAvaliacoes(atividadeId) {
+    return await professorManager.verAvaliacoes(atividadeId);
+}
+
+async function viewAlunoPerformance(alunoId) {
+    return await professorManager.viewAlunoPerformance(alunoId);
 }

@@ -565,13 +565,11 @@ async function loadAlunoDashboardContent() {
     `;
 }
 
-// Atualizar a função loadMenu para incluir onclick corretamente
 function loadMenu() {
     const menuContainer = document.getElementById('sidebar-menu');
     let menuItems = [];
 
     switch (currentUser.tipo) {
-        // No caso 'admin' do loadMenu(), adicionar:
         case 'admin':
             menuItems = [
                 { icon: 'fas fa-home', text: 'Dashboard', section: 'dashboard' },

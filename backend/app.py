@@ -1701,6 +1701,423 @@ def alocar_professor_turma(turma_id):
         import traceback
         traceback.print_exc()
         return error_response(f'Erro interno: {str(e)}')
+    
+# =============================================
+# SISTEMA DE ATIVIDADES - FUNCIONAIS
+# =============================================
+
+@app.route('/api/professor/atividades', methods=['POST'])
+@token_required
+def criar_atividade_professor():
+    try:
+        if request.user_type != 'professor':
+            return error_response('Acesso restrito a professores', 403)
+        
+        data = request.get_json()
+        
+        required_fields = ['titulo', 'turma_id', 'data_entrega', 'valor']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return error_response(f'Campo obrigatório: {field}', 400)
+        
+        db = get_db()
+        
+        # Buscar a matéria do professor na turma especificada
+        materia = db.execute('''
+            SELECT m.id FROM materias m 
+            WHERE m.turma_id = ? AND m.professor_id = ?
+            LIMIT 1
+        ''', (data['turma_id'], request.user_id)).fetchone()
+        
+        if not materia:
+            return error_response('Você não tem permissão para criar atividades nesta turma ou não há matéria atribuída', 403)
+        
+        materia_id = materia['id']
+        
+        # Criar atividade
+        db.execute('''
+            INSERT INTO atividades (titulo, descricao, materia_id, valor, data_entrega, criado_por)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            data['titulo'],
+            data.get('descricao', ''),
+            materia_id,
+            data['valor'],
+            data['data_entrega'],
+            request.user_id
+        ))
+        
+        db.commit()
+        
+        return success_response('Atividade criada com sucesso!')
+        
+    except Exception as e:
+        print(f'Erro ao criar atividade: {e}')
+        return error_response(str(e))
+
+# Rota adicional para obter matérias de uma turma
+@app.route('/api/professor/turmas/<int:turma_id>/materias', methods=['GET'])
+@token_required
+def get_materias_turma(turma_id):
+    try:
+        if request.user_type != 'professor':
+            return error_response('Acesso restrito a professores', 403)
+        
+        db = get_db()
+        
+        # Buscar matérias do professor na turma
+        materias = db.execute('''
+            SELECT m.id, m.nome 
+            FROM materias m 
+            WHERE m.turma_id = ? AND m.professor_id = ?
+        ''', (turma_id, request.user_id)).fetchall()
+        
+        return success_response('Matérias carregadas', {
+            'materias': [dict(materia) for materia in materias]
+        })
+        
+    except Exception as e:
+        return error_response(str(e))
+
+@app.route('/api/professor/atividades/<int:atividade_id>', methods=['PUT', 'DELETE'])
+@token_required
+def gerenciar_atividade(atividade_id):
+    if request.method == 'PUT':
+        return editar_atividade(atividade_id)
+    elif request.method == 'DELETE':
+        return excluir_atividade(atividade_id)
+
+def editar_atividade(atividade_id):
+    try:
+        if request.user_type != 'professor':
+            return error_response('Acesso restrito a professores', 403)
+        
+        data = request.get_json()
+        
+        db = get_db()
+        
+        # Verificar se a atividade pertence ao professor
+        atividade = db.execute('''
+            SELECT a.id FROM atividades a
+            JOIN materias m ON a.materia_id = m.id
+            WHERE a.id = ? AND m.professor_id = ?
+        ''', (atividade_id, request.user_id)).fetchone()
+        
+        if not atividade:
+            return error_response('Atividade não encontrada ou acesso negado', 404)
+        
+        # Atualizar atividade
+        update_fields = []
+        update_values = []
+        
+        if 'titulo' in data:
+            update_fields.append('titulo = ?')
+            update_values.append(data['titulo'])
+        
+        if 'descricao' in data:
+            update_fields.append('descricao = ?')
+            update_values.append(data.get('descricao', ''))
+        
+        if 'valor' in data:
+            update_fields.append('valor = ?')
+            update_values.append(data['valor'])
+        
+        if 'data_entrega' in data:
+            update_fields.append('data_entrega = ?')
+            update_values.append(data['data_entrega'])
+        
+        if update_fields:
+            update_values.append(atividade_id)
+            db.execute(f'''
+                UPDATE atividades 
+                SET {', '.join(update_fields)}
+                WHERE id = ?
+            ''', update_values)
+            
+            db.commit()
+        
+        return success_response('Atividade atualizada com sucesso!')
+        
+    except Exception as e:
+        return error_response(str(e))
+
+def excluir_atividade(atividade_id):
+    try:
+        if request.user_type != 'professor':
+            return error_response('Acesso restrito a professores', 403)
+        
+        db = get_db()
+        
+        # Verificar se a atividade pertence ao professor
+        atividade = db.execute('''
+            SELECT a.id FROM atividades a
+            JOIN materias m ON a.materia_id = m.id
+            WHERE a.id = ? AND m.professor_id = ?
+        ''', (atividade_id, request.user_id)).fetchone()
+        
+        if not atividade:
+            return error_response('Atividade não encontrada ou acesso negado', 404)
+        
+        # Verificar se há notas associadas
+        notas_count = db.execute(
+            'SELECT COUNT(*) FROM notas WHERE atividade_id = ?', 
+            (atividade_id,)
+        ).fetchone()[0]
+        
+        if notas_count > 0:
+            return error_response('Não é possível excluir atividade com notas registradas', 400)
+        
+        # Excluir atividade
+        db.execute('DELETE FROM atividades WHERE id = ?', (atividade_id,))
+        db.commit()
+        
+        return success_response('Atividade excluída com sucesso!')
+        
+    except Exception as e:
+        return error_response(str(e))
+
+# =============================================
+# SISTEMA DE AVALIAÇÕES - FUNCIONAIS
+# =============================================
+
+@app.route('/api/professor/atividades/<int:atividade_id>/alunos', methods=['GET'])
+@token_required
+def get_alunos_para_avaliar(atividade_id):
+    try:
+        if request.user_type != 'professor':
+            return error_response('Acesso restrito a professores', 403)
+        
+        db = get_db()
+        
+        # Verificar se a atividade pertence ao professor e obter dados
+        atividade_data = db.execute('''
+            SELECT a.*, m.professor_id, t.id as turma_id, t.nome as turma_nome
+            FROM atividades a
+            JOIN materias m ON a.materia_id = m.id
+            JOIN turmas t ON m.turma_id = t.id
+            WHERE a.id = ? AND m.professor_id = ?
+        ''', (atividade_id, request.user_id)).fetchone()
+        
+        if not atividade_data:
+            return error_response('Atividade não encontrada ou acesso negado', 404)
+        
+        # Buscar alunos da turma
+        alunos = db.execute('''
+            SELECT 
+                al.id, 
+                u.nome, 
+                al.matricula,
+                n.nota,
+                n.feedback,
+                n.data_avaliacao
+            FROM alunos al
+            JOIN usuarios u ON al.usuario_id = u.id
+            LEFT JOIN notas n ON al.id = n.aluno_id AND n.atividade_id = ?
+            WHERE al.turma_id = ?
+            ORDER BY u.nome
+        ''', (atividade_id, atividade_data['turma_id'])).fetchall()
+        
+        return success_response('Alunos carregados', {
+            'atividade': dict(atividade_data),
+            'alunos': [dict(aluno) for aluno in alunos]
+        })
+        
+    except Exception as e:
+        return error_response(str(e))
+
+@app.route('/api/professor/atividades/<int:atividade_id>/avaliar', methods=['POST'])
+@token_required
+def avaliar_atividade_alunos(atividade_id):
+    try:
+        if request.user_type != 'professor':
+            return error_response('Acesso restrito a professores', 403)
+        
+        data = request.get_json()
+        
+        if 'avaliacoes' not in data or not isinstance(data['avaliacoes'], list):
+            return error_response('Lista de avaliações é obrigatória', 400)
+        
+        db = get_db()
+        
+        # Verificar se a atividade pertence ao professor
+        atividade = db.execute('''
+            SELECT a.id FROM atividades a
+            JOIN materias m ON a.materia_id = m.id
+            WHERE a.id = ? AND m.professor_id = ?
+        ''', (atividade_id, request.user_id)).fetchone()
+        
+        if not atividade:
+            return error_response('Atividade não encontrada ou acesso negado', 404)
+        
+        # Processar avaliações
+        for avaliacao in data['avaliacoes']:
+            if 'aluno_id' not in avaliacao or 'nota' not in avaliacao:
+                continue
+            
+            # Verificar se nota já existe
+            existing = db.execute(
+                'SELECT id FROM notas WHERE aluno_id = ? AND atividade_id = ?',
+                (avaliacao['aluno_id'], atividade_id)
+            ).fetchone()
+            
+            if existing:
+                # Atualizar nota existente
+                db.execute('''
+                    UPDATE notas 
+                    SET nota = ?, feedback = ?, data_avaliacao = CURRENT_TIMESTAMP,
+                        avaliado_por = ?
+                    WHERE aluno_id = ? AND atividade_id = ?
+                ''', (
+                    avaliacao['nota'],
+                    avaliacao.get('feedback', ''),
+                    request.user_id,
+                    avaliacao['aluno_id'],
+                    atividade_id
+                ))
+            else:
+                # Inserir nova nota
+                db.execute('''
+                    INSERT INTO notas (aluno_id, atividade_id, nota, feedback, avaliado_por)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    avaliacao['aluno_id'],
+                    atividade_id,
+                    avaliacao['nota'],
+                    avaliacao.get('feedback', ''),
+                    request.user_id
+                ))
+        
+        db.commit()
+        
+        return success_response('Avaliações salvas com sucesso!')
+        
+    except Exception as e:
+        return error_response(str(e))
+
+@app.route('/api/professor/atividades/<int:atividade_id>/avaliacoes', methods=['GET'])
+@token_required
+def ver_avaliacoes_atividade(atividade_id):
+    try:
+        if request.user_type != 'professor':
+            return error_response('Acesso restrito a professores', 403)
+        
+        db = get_db()
+        
+        # Verificar se a atividade pertence ao professor
+        atividade_data = db.execute('''
+            SELECT a.*, m.professor_id, t.nome as turma_nome, m.nome as materia_nome
+            FROM atividades a
+            JOIN materias m ON a.materia_id = m.id
+            JOIN turmas t ON m.turma_id = t.id
+            WHERE a.id = ? AND m.professor_id = ?
+        ''', (atividade_id, request.user_id)).fetchone()
+        
+        if not atividade_data:
+            return error_response('Atividade não encontrada ou acesso negado', 404)
+        
+        # Buscar avaliações completas
+        avaliacoes = db.execute('''
+            SELECT 
+                n.*,
+                u.nome as aluno_nome,
+                al.matricula,
+                av.nome as avaliador_nome
+            FROM notas n
+            JOIN alunos al ON n.aluno_id = al.id
+            JOIN usuarios u ON al.usuario_id = u.id
+            LEFT JOIN usuarios av ON n.avaliado_por = av.id
+            WHERE n.atividade_id = ?
+            ORDER BY u.nome
+        ''', (atividade_id,)).fetchall()
+        
+        # Estatísticas
+        estatisticas = db.execute('''
+            SELECT 
+                COUNT(*) as total_avaliacoes,
+                AVG(nota) as media_geral,
+                MIN(nota) as nota_minima,
+                MAX(nota) as nota_maxima
+            FROM notas 
+            WHERE atividade_id = ?
+        ''', (atividade_id,)).fetchone()
+        
+        return success_response('Avaliações carregadas', {
+            'atividade': dict(atividade_data),
+            'avaliacoes': [dict(avaliacao) for avaliacao in avaliacoes],
+            'estatisticas': dict(estatisticas)
+        })
+        
+    except Exception as e:
+        return error_response(str(e))
+
+# =============================================
+# DESEMPENHO DO ALUNO
+# =============================================
+
+@app.route('/api/professor/alunos/<int:aluno_id>/desempenho', methods=['GET'])
+@token_required
+def get_desempenho_aluno(aluno_id):
+    try:
+        if request.user_type != 'professor':
+            return error_response('Acesso restrito a professores', 403)
+        
+        db = get_db()
+        
+        # Verificar se o professor tem acesso ao aluno (mesma turma)
+        aluno_turma = db.execute('''
+            SELECT al.turma_id 
+            FROM alunos al
+            JOIN materias m ON al.turma_id = m.turma_id
+            WHERE al.id = ? AND m.professor_id = ?
+        ''', (aluno_id, request.user_id)).fetchone()
+        
+        if not aluno_turma:
+            return error_response('Aluno não encontrado ou acesso negado', 404)
+        
+        # Dados do aluno
+        aluno_data = db.execute('''
+            SELECT u.nome, al.matricula, t.nome as turma_nome
+            FROM alunos al
+            JOIN usuarios u ON al.usuario_id = u.id
+            LEFT JOIN turmas t ON al.turma_id = t.id
+            WHERE al.id = ?
+        ''', (aluno_id,)).fetchone()
+        
+        # Notas e desempenho
+        desempenho = db.execute('''
+            SELECT 
+                n.nota,
+                a.titulo as atividade_titulo,
+                a.valor as valor_atividade,
+                m.nome as materia_nome,
+                n.data_avaliacao,
+                n.feedback
+            FROM notas n
+            JOIN atividades a ON n.atividade_id = a.id
+            JOIN materias m ON a.materia_id = m.id
+            WHERE n.aluno_id = ?
+            ORDER BY n.data_avaliacao DESC
+        ''', (aluno_id,)).fetchall()
+        
+        # Estatísticas
+        estatisticas = db.execute('''
+            SELECT 
+                COUNT(*) as total_atividades,
+                AVG(n.nota) as media_geral,
+                COUNT(CASE WHEN n.nota >= 6 THEN 1 END) as aprovados,
+                COUNT(CASE WHEN n.nota < 6 THEN 1 END) as reprovados
+            FROM notas n
+            WHERE n.aluno_id = ?
+        ''', (aluno_id,)).fetchone()
+        
+        return success_response('Desempenho carregado', {
+            'aluno': dict(aluno_data),
+            'desempenho': [dict(item) for item in desempenho],
+            'estatisticas': dict(estatisticas)
+        })
+        
+    except Exception as e:
+        return error_response(str(e))
 
 # =============================================
 # ROTAS DO ALUNO (FRONTEND)
