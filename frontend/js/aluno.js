@@ -1565,43 +1565,47 @@ class AlunoManager {
         }
     }
 
-    async entregarAtividade(atividadeId) {
-        try {
-            const arquivoInput = document.getElementById('arquivo-atividade');
+        async entregarAtividade(atividadeId) {
+            try {
+                showNotification('Enviando atividade...', 'info');
 
-            // Em um sistema real, aqui você faria o upload do arquivo
-            // Por enquanto, apenas chamamos a API para marcar como entregue
+                const response = await fetch(`${API_BASE}/aluno/entregar-atividade/${atividadeId}`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({})
+                });
 
-            showNotification('Enviando atividade...', 'info');
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro ao entregar atividade');
+                }
 
-            const response = await fetch(`${API_BASE}/aluno/entregar-atividade/${atividadeId}`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    // Dados do arquivo seriam enviados aqui
-                    arquivo_nome: arquivoInput?.files[0]?.name || 'trabalho_entregue.pdf',
-                    data_entrega: new Date().toISOString()
-                })
-            });
+                const result = await response.json();
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Erro ao entregar atividade');
+                showNotification('Atividade entregue com sucesso! Aguarde a correção.', 'success');
+                closeModal('detalhes-atividade-modal');
+
+                // Recarregar a seção de atividades
+                showSection('atividades-aluno');
+
+            } catch (error) {
+                console.error('Erro ao entregar atividade:', error);
+                
+                // Traduzir mensagens de erro comuns
+                let mensagemErro = error.message;
+                if (error.message.includes('already been submitted')) {
+                    mensagemErro = 'Esta atividade já foi entregue anteriormente.';
+                } else if (error.message.includes('deadline has passed')) {
+                    mensagemErro = 'O prazo de entrega já expirou.';
+                } else if (error.message.includes('not found')) {
+                    mensagemErro = 'Atividade não encontrada.';
+                } else if (error.message.includes('restricted to students')) {
+                    mensagemErro = 'Acesso restrito a alunos.';
+                }
+                
+                showNotification('Erro ao entregar atividade: ' + mensagemErro, 'error');
             }
-
-            const result = await response.json();
-
-            showNotification('Atividade entregue com sucesso! Aguarde a correção.', 'success');
-            closeModal('detalhes-atividade-modal');
-
-            // Recarregar a seção de atividades
-            showSection('atividades-aluno');
-
-        } catch (error) {
-            console.error('Erro ao entregar atividade:', error);
-            showNotification('Erro ao entregar atividade: ' + error.message, 'error');
         }
-    }
 
     showFeedback(notaId, feedback) {
         const modalContent = `
@@ -1624,6 +1628,166 @@ class AlunoManager {
         `;
 
         this.showCustomModal('feedback-modal', modalContent);
+    }
+
+     // =============================================
+    // SISTEMA DE NOTIFICAÇÕES CORRIGIDO
+    // =============================================
+    showNotification(message, type = 'info') {
+        try {
+            // Garante que existe um container para notificações
+            let notificationContainer = document.getElementById('notification-container');
+            
+            if (!notificationContainer) {
+                notificationContainer = document.createElement('div');
+                notificationContainer.id = 'notification-container';
+                notificationContainer.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 10000;
+                    max-width: 400px;
+                `;
+                document.body.appendChild(notificationContainer);
+            }
+
+            // Remove notificações antigas
+            const existingNotifications = notificationContainer.querySelectorAll('.notification');
+            existingNotifications.forEach(notification => {
+                if (notification.parentNode === notificationContainer) {
+                    notificationContainer.removeChild(notification);
+                }
+            });
+
+            // Cria nova notificação
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            
+            // Configura cores por tipo
+            let backgroundColor, textColor, icon;
+            switch (type) {
+                case 'success':
+                    backgroundColor = '#28a745'; // VERDE
+                    textColor = '#ffffff';
+                    icon = 'fa-check-circle';
+                    break;
+                case 'error':
+                    backgroundColor = '#dc3545';
+                    textColor = '#ffffff';
+                    icon = 'fa-exclamation-circle';
+                    break;
+                case 'warning':
+                    backgroundColor = '#ffc107';
+                    textColor = '#212529';
+                    icon = 'fa-exclamation-triangle';
+                    break;
+                case 'info':
+                default:
+                    backgroundColor = '#17a2b8';
+                    textColor = '#ffffff';
+                    icon = 'fa-info-circle';
+                    break;
+            }
+
+            // Aplica estilos diretamente
+            notification.style.cssText = `
+                background-color: ${backgroundColor};
+                color: ${textColor};
+                padding: 15px 20px;
+                margin-bottom: 10px;
+                border-radius: 5px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                animation: slideInRight 0.3s ease-out;
+                max-width: 100%;
+                word-wrap: break-word;
+            `;
+
+            notification.innerHTML = `
+                <i class="fas ${icon}" style="font-size: 1.2em;"></i>
+                <span>${message}</span>
+            `;
+
+            // Adiciona ao container
+            notificationContainer.appendChild(notification);
+
+            // Remove automaticamente após 5 segundos
+            setTimeout(() => {
+                if (notification.parentNode === notificationContainer) {
+                    notification.style.animation = 'slideOutRight 0.3s ease-in';
+                    setTimeout(() => {
+                        if (notification.parentNode === notificationContainer) {
+                            notificationContainer.removeChild(notification);
+                        }
+                    }, 300);
+                }
+            }, 5000);
+
+            // Garante que os estilos CSS estão presentes
+            this.ensureNotificationStyles();
+
+        } catch (error) {
+            console.error('Erro ao mostrar notificação:', error);
+            // Fallback: alert simples
+            alert(`[${type.toUpperCase()}] ${message}`);
+        }
+    }
+
+    // Garante que os estilos CSS estão presentes
+    ensureNotificationStyles() {
+        if (document.getElementById('notification-styles')) return;
+
+        const styles = document.createElement('style');
+        styles.id = 'notification-styles';
+        styles.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOutRight {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+            
+            .notification {
+                transition: all 0.3s ease;
+            }
+            
+            /* Estilos específicos para cada tipo */
+            .notification-success {
+                border-left: 4px solid #218838;
+            }
+            
+            .notification-error {
+                border-left: 4px solid #c82333;
+            }
+            
+            .notification-warning {
+                border-left: 4px solid #e0a800;
+            }
+            
+            .notification-info {
+                border-left: 4px solid #138496;
+            }
+        `;
+        
+        document.head.appendChild(styles);
     }
 
     // =============================================
