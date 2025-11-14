@@ -114,8 +114,7 @@ class ProfessorManager {
                             <div class="stat-label">Aval. Pendentes</div>
                         </div>
                     </div>
-
-                    <!-- ✅ ATIVIDADES (LADO DIREITO) -->
+                    
                     <div class="atividades-section">
                         <div class="section">
                             <div class="section-header">
@@ -147,7 +146,7 @@ class ProfessorManager {
                                 </div>
                             `}
                         </div>
-                    </div>
+                    
 
                     <!-- ✅ TURMAS (LADO ESQUERDO) -->
                     <div class="turmas-section">
@@ -177,6 +176,9 @@ class ProfessorManager {
                             `}
                         </div>
                     </div>
+
+                    
+                    
 
                     
                 </div>
@@ -212,7 +214,7 @@ class ProfessorManager {
                         <span class="badge badge-info">${data.turmas.length} turmas</span>
                     </div>
                     
-                    <div class="search-container">
+                    <div class="search-bar">
                         <input type="text" id="search-turmas" placeholder="Pesquisar turmas..." onkeyup="professorManager.filtrarTurmas()">
                         <button class="btn btn-primary" onclick="professorManager.filtrarTurmas()">
                             <i class="fas fa-search"></i> Pesquisar
@@ -1259,33 +1261,91 @@ class ProfessorManager {
     // FUNÇÕES DE FILTRO
     // =============================================
     filtrarTurmas() {
-        const searchTerm = document.getElementById('search-turmas').value.toLowerCase();
+        const searchTerm = document.getElementById('search-turmas').value.toLowerCase().trim();
         const turmas = document.querySelectorAll('.turma-card');
+        let resultsFound = 0;
 
         turmas.forEach(turma => {
-            const text = turma.textContent.toLowerCase();
-            turma.style.display = text.includes(searchTerm) ? 'block' : 'none';
-        });
-    }
+            const turmaNome = turma.querySelector('.turma-header h3')?.textContent.toLowerCase() || '';
+            const turmaCodigo = turma.querySelector('.turma-codigo')?.textContent.toLowerCase() || '';
+            const materia = turma.querySelector('.info-item:nth-child(3) span')?.textContent.toLowerCase() || '';
 
-    filtrarAlunos() {
-        const searchTerm = document.getElementById('search-alunos').value.toLowerCase();
-        const alunos = document.querySelectorAll('.aluno-row');
+            const matches = turmaNome.includes(searchTerm) ||
+                turmaCodigo.includes(searchTerm) ||
+                materia.includes(searchTerm);
 
-        alunos.forEach(aluno => {
-            const text = aluno.textContent.toLowerCase();
-            aluno.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+            turma.style.display = matches ? 'block' : 'none';
+            if (matches) resultsFound++;
         });
+
+        this.mostrarResultadosBusca('turmas-list', resultsFound, 'turmas');
     }
 
     filtrarAtividades() {
-        const searchTerm = document.getElementById('search-atividades').value.toLowerCase();
+        const searchTerm = document.getElementById('search-atividades').value.toLowerCase().trim();
         const atividades = document.querySelectorAll('.atividade-item');
+        let resultsFound = 0;
 
         atividades.forEach(atividade => {
-            const text = atividade.textContent.toLowerCase();
-            atividade.style.display = text.includes(searchTerm) ? 'block' : 'none';
+            const titulo = atividade.querySelector('.atividade-title')?.textContent.toLowerCase() || '';
+            const materia = atividade.querySelector('.atividade-meta span:nth-child(1)')?.textContent.toLowerCase() || '';
+            const turma = atividade.querySelector('.atividade-meta span:nth-child(2)')?.textContent.toLowerCase() || '';
+            const descricao = atividade.textContent.toLowerCase();
+
+            const matches = titulo.includes(searchTerm) ||
+                materia.includes(searchTerm) ||
+                turma.includes(searchTerm) ||
+                descricao.includes(searchTerm);
+
+            atividade.style.display = matches ? 'block' : 'none';
+            if (matches) resultsFound++;
         });
+
+        this.mostrarResultadosBusca('atividades-list', resultsFound, 'atividades');
+    }
+
+    filtrarAlunos() {
+        const searchTerm = document.getElementById('search-alunos').value.toLowerCase().trim();
+        const alunos = document.querySelectorAll('.aluno-row');
+        let resultsFound = 0;
+
+        alunos.forEach(aluno => {
+            const nome = aluno.querySelector('.aluno-nome')?.textContent.toLowerCase() || '';
+            const matricula = aluno.querySelector('.aluno-details span:nth-child(1)')?.textContent.toLowerCase() || '';
+            const email = aluno.querySelector('.aluno-details span:nth-child(2)')?.textContent.toLowerCase() || '';
+
+            const matches = nome.includes(searchTerm) ||
+                matricula.includes(searchTerm) ||
+                email.includes(searchTerm);
+
+            aluno.style.display = matches ? 'flex' : 'none';
+            if (matches) resultsFound++;
+        });
+
+        // Para alunos no modal, não mostramos mensagem de resultados
+    }
+
+    mostrarResultadosBusca(containerId, resultsFound, tipo) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        // Remove mensagem anterior se existir
+        const existingMessage = container.querySelector('.no-results');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+
+        // Se não encontrou resultados, mostra mensagem
+        if (resultsFound === 0 && searchTerm !== '') {
+            const noResults = document.createElement('div');
+            noResults.className = 'no-results';
+            noResults.innerHTML = `
+            <i class="fas fa-search"></i>
+            <h3>Nenhuma ${tipo} encontrada</h3>
+            <p>Tente usar termos de busca diferentes</p>
+        `;
+            container.appendChild(noResults);
+        }
     }
 
     // =============================================

@@ -152,7 +152,6 @@ function loadMenu() {
                 { icon: 'fas fa-home', text: 'Dashboard', section: 'dashboard' },
                 { icon: 'fas fa-chart-line', text: 'Minhas Notas', section: 'minhas-notas' },
                 { icon: 'fas fa-tasks', text: 'Atividades', section: 'atividades-aluno' },
-                { icon: 'fas fa-calendar-alt', text: 'Calendário', section: 'calendario-aluno' },
                 { icon: 'fas fa-comments', text: 'Feedback', section: 'feedback-aluno' }
             ];
             break;
@@ -576,8 +575,7 @@ function loadMenu() {
                 { icon: 'fas fa-users', text: 'Gerenciar Turmas', section: 'turmas' },
                 { icon: 'fas fa-user-graduate', text: 'Gerenciar Alunos', section: 'alunos' },
                 { icon: 'fas fa-chalkboard-teacher', text: 'Gerenciar Professores', section: 'professores' },
-                { icon: 'fas fa-book', text: 'Gerenciar Matérias', section: 'materias' }, // NOVO
-                { icon: 'fas fa-chart-bar', text: 'Relatórios', section: 'relatorios' }, // NOVO
+
             ];
             break;
 
@@ -595,7 +593,6 @@ function loadMenu() {
                 { icon: 'fas fa-home', text: 'Dashboard', section: 'dashboard' },
                 { icon: 'fas fa-chart-line', text: 'Minhas Notas', section: 'minhas-notas' },
                 { icon: 'fas fa-tasks', text: 'Atividades', section: 'atividades-aluno' },
-                { icon: 'fas fa-calendar-alt', text: 'Calendário', section: 'calendario-aluno' }
             ];
             break;
     }

@@ -67,10 +67,13 @@ def admin_required(f):
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'sistema-academico-secret-key'
 
-CORS(app, origins=["http://127.0.0.1:5500", "http://localhost:5500", "http://localhost:8000", "http://127.0.0.1:8000"], 
+# CONFIGURAÇÃO CORS CORRIGIDA
+CORS(app, 
+     origins=["http://127.0.0.1:5500", "http://localhost:5500", "http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:3000"],
      supports_credentials=True, 
-     allow_headers=["Content-Type", "Authorization", "Accept"],
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+     allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+     expose_headers=["Content-Type", "Authorization"])
 
 @app.route('/api/test-cors', methods=['GET', 'OPTIONS'])
 def test_cors():
@@ -1754,6 +1757,57 @@ def criar_atividade_professor():
     except Exception as e:
         print(f'Erro ao criar atividade: {e}')
         return error_response(str(e))
+    
+@app.route('/api/aluno/entregar-atividade/<int:atividade_id>', methods=['POST'])
+@token_required
+def entregar_atividade(aluno_id, atividade_id):
+    try:
+        if request.user_type != 'aluno':
+            return error_response('Acesso restrito a alunos', 403)
+        
+        data = request.get_json()
+        
+        db = get_db()
+        
+        # Verificar se o aluno existe e pertence à turma da atividade
+        aluno = db.execute('''
+            SELECT a.id 
+            FROM alunos a
+            JOIN atividades atv ON a.turma_id = (
+                SELECT m.turma_id FROM materias m 
+                WHERE m.id = atv.materia_id
+            )
+            WHERE a.usuario_id = ? AND atv.id = ?
+        ''', (request.user_id, atividade_id)).fetchone()
+        
+        if not aluno:
+            return error_response('Aluno não encontrado ou não tem acesso a esta atividade', 404)
+        
+        # Aqui você processaria o upload do arquivo
+        # Por enquanto, apenas marcamos como entregue criando uma nota com valor 0
+        # (que será atualizada quando o professor corrigir)
+        
+        # Verificar se já existe uma nota para esta atividade
+        nota_existente = db.execute('''
+            SELECT id FROM notas 
+            WHERE aluno_id = ? AND atividade_id = ?
+        ''', (aluno['id'], atividade_id)).fetchone()
+        
+        if nota_existente:
+            return error_response('Atividade já foi entregue', 400)
+        
+        # Criar registro de entrega (nota com valor 0 = pendente de correção)
+        db.execute('''
+            INSERT INTO notas (aluno_id, atividade_id, nota, feedback, avaliado_por)
+            VALUES (?, ?, 0, 'Aguardando correção', ?)
+        ''', (aluno['id'], atividade_id, request.user_id))
+        
+        db.commit()
+        
+        return success_response('Atividade entregue com sucesso! Aguarde a correção.')
+        
+    except Exception as e:
+        return error_response(str(e))
 
 # Rota adicional para obter matérias de uma turma
 @app.route('/api/professor/turmas/<int:turma_id>/materias', methods=['GET'])
@@ -2124,68 +2178,85 @@ def get_desempenho_aluno(aluno_id):
 # =============================================
 
 @app.route('/api/aluno/atividades-pendentes', methods=['GET'])
-def get_atividades_pendentes():
+@token_required
+def get_atividades_pendentes_aluno():
     try:
-        # Dados mock para teste
-        atividades_mock = [
-            {
-                'id': 1,
-                'titulo': 'Trabalho de Matemática - Álgebra Linear',
-                'materia_nome': 'Matemática',
-                'data_entrega': '2024-01-15',
-                'valor': 10.0,
-                'entregue': False,
-                'descricao': 'Resolver exercícios 1 ao 10 da página 45'
-            },
-            {
-                'id': 2,
-                'titulo': 'Redação sobre Sustentabilidade',
-                'materia_nome': 'Português',
-                'data_entrega': '2024-01-20',
-                'valor': 8.0,
-                'entregue': True,
-                'descricao': 'Redação de 30 linhas sobre desenvolvimento sustentável'
-            }
-        ]
+        if request.user_type != 'aluno':
+            return error_response('Acesso restrito a alunos', 403)
+        
+        db = get_db()
+        
+        # Buscar o aluno baseado no usuário logado
+        aluno = db.execute('''
+            SELECT a.id, a.turma_id 
+            FROM alunos a 
+            WHERE a.usuario_id = ?
+        ''', (request.user_id,)).fetchone()
+        
+        if not aluno:
+            return error_response('Aluno não encontrado', 404)
+        
+        # Buscar atividades da turma do aluno
+        atividades = db.execute('''
+            SELECT 
+                a.id,
+                a.titulo,
+                a.descricao,
+                a.valor,
+                a.data_entrega,
+                m.nome as materia_nome,
+                t.nome as turma_nome,
+                -- Verificar se o aluno já entregou esta atividade
+                CASE WHEN n.id IS NOT NULL THEN 1 ELSE 0 END as entregue,
+                n.nota,
+                n.feedback
+            FROM atividades a
+            JOIN materias m ON a.materia_id = m.id
+            JOIN turmas t ON m.turma_id = t.id
+            LEFT JOIN notas n ON a.id = n.atividade_id AND n.aluno_id = ?
+            WHERE t.id = ?  -- Apenas atividades da turma do aluno
+            ORDER BY a.data_entrega ASC
+        ''', (aluno['id'], aluno['turma_id'])).fetchall()
         
         return success_response('Atividades carregadas', {
-            'atividades': atividades_mock,
-            'total': len(atividades_mock),
-            'pendentes': len([a for a in atividades_mock if not a['entregue']])
+            'atividades': [dict(atividade) for atividade in atividades],
+            'total': len(atividades),
+            'pendentes': len([a for a in atividades if not a['entregue']])
         })
         
     except Exception as e:
+        print(f'Erro ao carregar atividades do aluno: {e}')
         return error_response(str(e))
+    
+
 
 @app.route('/api/aluno/minhas-notas', methods=['GET'])
-def get_minhas_notas():
+@token_required
+def get_minhas_notas_aluno():
     try:
+        if request.user_type != 'aluno':
+            return error_response('Acesso restrito a alunos', 403)
+        
         db = get_db()
         
-        # Obter algum aluno para teste
-        aluno = db.execute('SELECT id FROM alunos LIMIT 1').fetchone()
+        # Buscar o aluno baseado no usuário logado
+        aluno = db.execute('''
+            SELECT a.id 
+            FROM alunos a 
+            WHERE a.usuario_id = ?
+        ''', (request.user_id,)).fetchone()
+        
         if not aluno:
-            # Retornar dados mock se não houver aluno
-            notas_mock = [
-                {
-                    'id': 1,
-                    'atividade_titulo': 'Prova Bimestral - Unidade 1',
-                    'materia_nome': 'Matemática',
-                    'nota': 8.5,
-                    'valor_atividade': 10.0,
-                    'feedback': 'Bom trabalho! Continue assim.',
-                    'data_avaliacao': '2024-01-10',
-                    'professor_nome': 'Prof. Carlos Silva'
-                }
-            ]
-            return success_response('Notas carregadas', {
-                'notas': notas_mock,
-                'media_geral': 8.5
-            })
-            
+            return error_response('Aluno não encontrado', 404)
+        
+        # Buscar notas do aluno
         notas = db.execute('''
-            SELECT n.*, a.titulo as atividade_titulo, m.nome as materia_nome,
-                   a.valor as valor_atividade, u.nome as professor_nome
+            SELECT 
+                n.*,
+                a.titulo as atividade_titulo,
+                a.valor as valor_atividade,
+                m.nome as materia_nome,
+                u.nome as professor_nome
             FROM notas n
             JOIN atividades a ON n.atividade_id = a.id
             JOIN materias m ON a.materia_id = m.id
@@ -2204,6 +2275,7 @@ def get_minhas_notas():
             'media_geral': round(media_geral['media'], 1) if media_geral['media'] else 0
         })
     except Exception as e:
+        print(f'Erro ao carregar notas do aluno: {e}')
         return error_response(str(e))
 
 @app.route('/api/aluno/calendario-aulas', methods=['GET'])
