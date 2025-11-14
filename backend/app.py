@@ -1758,36 +1758,40 @@ def criar_atividade_professor():
         print(f'Erro ao criar atividade: {e}')
         return error_response(str(e))
     
+
 @app.route('/api/aluno/entregar-atividade/<int:atividade_id>', methods=['POST'])
 @token_required
-def entregar_atividade(aluno_id, atividade_id):
+def entregar_atividade(atividade_id):  # ✅ CORRIGIDO: Remove aluno_id
     try:
         if request.user_type != 'aluno':
             return error_response('Acesso restrito a alunos', 403)
         
-        data = request.get_json()
+        data = request.get_json() or {}
         
         db = get_db()
         
-        # Verificar se o aluno existe e pertence à turma da atividade
+        # Buscar o aluno baseado no usuário logado
         aluno = db.execute('''
-            SELECT a.id 
-            FROM alunos a
-            JOIN atividades atv ON a.turma_id = (
-                SELECT m.turma_id FROM materias m 
-                WHERE m.id = atv.materia_id
-            )
-            WHERE a.usuario_id = ? AND atv.id = ?
-        ''', (request.user_id, atividade_id)).fetchone()
+            SELECT a.id, a.turma_id 
+            FROM alunos a 
+            WHERE a.usuario_id = ?
+        ''', (request.user_id,)).fetchone()
         
         if not aluno:
-            return error_response('Aluno não encontrado ou não tem acesso a esta atividade', 404)
+            return error_response('Aluno não encontrado', 404)
         
-        # Aqui você processaria o upload do arquivo
-        # Por enquanto, apenas marcamos como entregue criando uma nota com valor 0
-        # (que será atualizada quando o professor corrigir)
+        # Verificar se a atividade existe e pertence à turma do aluno
+        atividade = db.execute('''
+            SELECT a.*, m.turma_id 
+            FROM atividades a
+            JOIN materias m ON a.materia_id = m.id
+            WHERE a.id = ? AND m.turma_id = ?
+        ''', (atividade_id, aluno['turma_id'])).fetchone()
         
-        # Verificar se já existe uma nota para esta atividade
+        if not atividade:
+            return error_response('Atividade não encontrada ou não disponível para este aluno', 404)
+        
+        # Verificar se já existe uma nota para esta atividade (já foi entregue)
         nota_existente = db.execute('''
             SELECT id FROM notas 
             WHERE aluno_id = ? AND atividade_id = ?
@@ -1796,18 +1800,24 @@ def entregar_atividade(aluno_id, atividade_id):
         if nota_existente:
             return error_response('Atividade já foi entregue', 400)
         
+        # Verificar se a data de entrega não expirou
+        data_entrega = datetime.strptime(atividade['data_entrega'], '%Y-%m-%d')
+        if datetime.now() > data_entrega:
+            return error_response('Prazo de entrega expirado', 400)
+        
         # Criar registro de entrega (nota com valor 0 = pendente de correção)
         db.execute('''
             INSERT INTO notas (aluno_id, atividade_id, nota, feedback, avaliado_por)
-            VALUES (?, ?, 0, 'Aguardando correção', ?)
-        ''', (aluno['id'], atividade_id, request.user_id))
+            VALUES (?, ?, 0, 'Aguardando correção', NULL)
+        ''', (aluno['id'], atividade_id))
         
         db.commit()
         
         return success_response('Atividade entregue com sucesso! Aguarde a correção.')
         
     except Exception as e:
-        return error_response(str(e))
+        print(f'Erro ao entregar atividade: {e}')
+        return error_response(f'Erro ao processar entrega: {str(e)}')
 
 # Rota adicional para obter matérias de uma turma
 @app.route('/api/professor/turmas/<int:turma_id>/materias', methods=['GET'])

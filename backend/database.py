@@ -154,7 +154,7 @@ def init_db():
     usuarios_padrao = [
         ('Administrador', 'admin@escola.com', generate_password_hash('admin123'), 'admin', None, None, None),
         ('Professor Demo', 'professor@escola.com', generate_password_hash('prof123'), 'professor', '(11) 99999-9999', 'Licenciatura em Matemática', 5),
-        ('Aluno Demo', 'aluno@escola.com', generate_password_hash('aluno123'), 'aluno', None, None, None),
+        ('Aluno Demo', 'aluno@escola.com', generate_password_hash('aluno123'), 'aluno', None, None, None), 
         ('Maria Silva', 'maria.silva@escola.com', generate_password_hash('senha123'), 'professor', '(11) 99999-8888', 'Licenciatura em Português', 8),
         ('João Santos', 'joao.santos@escola.com', generate_password_hash('senha123'), 'professor', '(11) 99999-7777', 'Licenciatura em Ciências', 3)
     ]
